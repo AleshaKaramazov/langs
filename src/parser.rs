@@ -110,23 +110,46 @@ impl<'a> Parser<'a> {
         Stmt::Let { name, ty, expr }
     }
 
-    fn parse_if(&mut self) -> Stmt {
-        self.advance();
-        let cond = self.parse_expr();
-        self.expect(Token::Then);
 
-        let body = if self.current == Token::Begin {
-            self.advance();
-            let b = self.parse_block(Token::End);
-            b
+
+    fn parse_if(&mut self) -> Stmt {
+        self.advance(); // если
+
+        let cond = self.parse_expr();
+
+        let then_body = if self.current == Token::Begin {
+            self.advance(); // начало
+            self.parse_block(Token::End)
         } else {
+            self.expect(Token::Then);
             vec![self.parse_stmt()]
         };
 
-        Stmt::If { cond, body }
+        let mut else_body = None;
+
+    
+        if self.current == Token::Else {
+            self.advance(); 
+
+            if self.current == Token::If {
+                let else_if = self.parse_if();
+                else_body = Some(vec![else_if]);
+            } else if self.current == Token::Begin {
+                self.advance();
+                else_body = Some(self.parse_block(Token::End));
+            } else {
+                self.expect(Token::Then);
+                else_body = Some(vec![self.parse_stmt()]);
+            }
+        }
+
+        Stmt::If {
+            cond,
+            then_body,
+            else_if: vec![],
+            else_body,
+        }
     }
-
-
 
     fn parse_while(&mut self) -> Stmt {
         self.advance();

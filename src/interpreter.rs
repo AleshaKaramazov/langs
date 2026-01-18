@@ -71,14 +71,31 @@ impl Interpreter {
                 None
             }
 
-            Stmt::If { cond, body } => {
+            Stmt::If {
+                cond,
+                then_body,
+                else_if,
+                else_body,
+            } => {
                 if self.eval_expr(cond) == Value::Bool(true) {
-                    if let Some(v) = self.exec_block(body) {
-                        return Some(v);
+                    self.exec_block(then_body);
+                    return None;
+                }
+
+                for (cond, body) in else_if {
+                    if self.eval_expr(cond) == Value::Bool(true) {
+                        self.exec_block(body);
+                        return None;
                     }
                 }
+
+                if let Some(body) = else_body {
+                    self.exec_block(body);
+                }
+
                 None
             }
+
 
             Stmt::While { cond, body } => {
                 while self.eval_expr(cond) == Value::Bool(true) {
@@ -178,8 +195,8 @@ impl Interpreter {
             return;
         }
 
-        let mut fmt = String::new();
-        let mut args = Vec::new();
+        let fmt;
+        let args;
 
         if let Value::String(s) = &values[0] {
             fmt = s.clone();
