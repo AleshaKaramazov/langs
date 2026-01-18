@@ -349,12 +349,13 @@ impl<'a> Parser<'a> {
     expr
     }
 
+
     fn parse_expr(&mut self) -> Expr {
         self.parse_or()
     }
 
     fn parse_or(&mut self) -> Expr {
-        let mut expr = self.parse_cmp();
+        let mut expr = self.parse_cmp(); 
         while self.current == Token::Or {
             self.advance();
             let right = self.parse_cmp();
@@ -368,30 +369,48 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_cmp(&mut self) -> Expr {
-        let mut expr = self.parse_primary();
-        while matches!(self.current, 
-            Token::Equal | Token::Greater | Token::Less 
-            | Token::Or  | Token::Mod     | Token::Minus 
-            | Token::Plus | Token::Mult | Token::Div ){
+        let mut expr = self.parse_arithmetic(); 
+        while matches!(self.current, Token::Equal | Token::Greater | Token::Less) {
             let op = match self.current {
                 Token::Equal => BinOp::Equal,
                 Token::Greater => BinOp::Greater,
-                Token::Mod => BinOp::Mod,
-                Token::Minus => BinOp::Sub,
                 Token::Less => BinOp::Less,
-                Token::Mult => BinOp::Mult,
-                Token::Div => BinOp::Div,
-                Token::Plus => BinOp::Plus,
-                Token::Or => BinOp::Or,
                 _ => unreachable!(),
             };
             self.advance();
-            let right = self.parse_primary();
+            let right = self.parse_arithmetic();
             expr = Expr::Binary {
                 left: Box::new(expr),
                 op,
                 right: Box::new(right),
             };
+        }
+        expr
+    }
+
+    fn parse_arithmetic(&mut self) -> Expr {
+        let mut expr = self.parse_term();
+        while matches!(self.current, Token::Plus | Token::Minus) {
+            let op = if self.current == Token::Plus { BinOp::Plus } else { BinOp::Sub };
+            self.advance();
+            let right = self.parse_term();
+            expr = Expr::Binary { left: Box::new(expr), op, right: Box::new(right) };
+        }
+        expr
+    }
+
+    fn parse_term(&mut self) -> Expr {
+        let mut expr = self.parse_primary();
+        while matches!(self.current, Token::Mult | Token::Div | Token::Mod) {
+            let op = match self.current {
+                Token::Mult => BinOp::Mult,
+                Token::Div => BinOp::Div,
+                Token::Mod => BinOp::Mod,
+                _ => unreachable!(),
+            };
+            self.advance();
+            let right = self.parse_primary();
+            expr = Expr::Binary { left: Box::new(expr), op, right: Box::new(right) };
         }
         expr
     }
