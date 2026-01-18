@@ -351,14 +351,10 @@ impl<'a> Parser<'a> {
 
 
     fn parse_expr(&mut self) -> Expr {
-        self.parse_or()
-    }
-
-    fn parse_or(&mut self) -> Expr {
-        let mut expr = self.parse_cmp(); 
+        let mut expr = self.parse_comparison(); 
         while self.current == Token::Or {
             self.advance();
-            let right = self.parse_cmp();
+            let right = self.parse_comparison();
             expr = Expr::Binary {
                 left: Box::new(expr),
                 op: BinOp::Or,
@@ -368,7 +364,7 @@ impl<'a> Parser<'a> {
         expr
     }
 
-    fn parse_cmp(&mut self) -> Expr {
+    fn parse_comparison(&mut self) -> Expr {
         let mut expr = self.parse_arithmetic(); 
         while matches!(self.current, Token::Equal | Token::Greater | Token::Less) {
             let op = match self.current {
@@ -379,17 +375,13 @@ impl<'a> Parser<'a> {
             };
             self.advance();
             let right = self.parse_arithmetic();
-            expr = Expr::Binary {
-                left: Box::new(expr),
-                op,
-                right: Box::new(right),
-            };
+            expr = Expr::Binary { left: Box::new(expr), op, right: Box::new(right) };
         }
         expr
     }
 
     fn parse_arithmetic(&mut self) -> Expr {
-        let mut expr = self.parse_term();
+        let mut expr = self.parse_term(); 
         while matches!(self.current, Token::Plus | Token::Minus) {
             let op = if self.current == Token::Plus { BinOp::Plus } else { BinOp::Sub };
             self.advance();
@@ -400,7 +392,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_term(&mut self) -> Expr {
-        let mut expr = self.parse_primary();
+        let mut expr = self.parse_primary(); // К числам и переменным
         while matches!(self.current, Token::Mult | Token::Div | Token::Mod) {
             let op = match self.current {
                 Token::Mult => BinOp::Mult,
@@ -413,8 +405,8 @@ impl<'a> Parser<'a> {
             expr = Expr::Binary { left: Box::new(expr), op, right: Box::new(right) };
         }
         expr
-    }
-
+    }    
+    
     fn parse_primary(&mut self) -> Expr {
         if self.current == Token::Minus {
             self.advance();
@@ -448,7 +440,7 @@ impl<'a> Parser<'a> {
                 if self.current == Token::Bang || self.current == Token::LParen {
                     self.finish_call(n)
                 } else {
-                    self.parse_expr_tail(Expr::Var(n))
+                    Expr::Var(n)
                 }
             }
             Token::LParen => {

@@ -187,19 +187,26 @@ impl Interpreter {
         }
     }
 
+
     fn eval_binary(&self, l: Value, r: Value, op: &BinOp) -> Value {
         match (l, r, op) {
-            (Value::Int(a), Value::Int(b), BinOp::Equal) => Value::Bool(a == b),
-            (Value::Int(a), Value::Int(b), BinOp::Greater) => Value::Bool(a > b),
-            (Value::Int(a), Value::Int(b), BinOp::Less) => Value::Bool(a < b),
-            (Value::Int(a), Value::Int(b), BinOp::Mod) => Value::Int(a % b),
-            (Value::Bool(a), Value::Bool(b), BinOp::Or) => Value::Bool(a || b),
             (Value::Int(a), Value::Int(b), BinOp::Plus) => Value::Int(a + b),
-            (Value::Int(a), Value::Int(b), BinOp::Mult) => Value::Int(a * b),
-            (Value::Int(a), Value::Int(b), BinOp::Div) => Value::Int(a / b),
-            (Value::String(a), Value::String(b), BinOp::Equal) => Value::Bool(a == b),
             (Value::Int(a), Value::Int(b), BinOp::Sub) => Value::Int(a - b),
-            _ => panic!("некорректная бинарная операция"),
+            (Value::Int(a), Value::Int(b), BinOp::Mult) => Value::Int(a * b),
+            (Value::Int(a), Value::Int(b), BinOp::Div) => {
+                if b == 0 { panic!("Деление на ноль!"); }
+                Value::Int(a / b)
+            }
+            (Value::Int(a), Value::Int(b), BinOp::Mod) => Value::Int(a % b),
+
+            (Value::Int(a), Value::Int(b), BinOp::Equal) => Value::Bool(a == b),
+            (Value::Int(a), Value::Int(b), BinOp::Less) => Value::Bool(a < b),
+            (Value::Int(a), Value::Int(b), BinOp::Greater) => Value::Bool(a > b),
+            (Value::String(a), Value::String(b), BinOp::Equal) => Value::Bool(a == b),
+
+            (Value::Bool(a), Value::Bool(b), BinOp::Or) => Value::Bool(a || b),
+
+            (left, right, op) => panic!("Ошибка типов: нельзя применить {:?} к {:?} и {:?}", op, left, right),
         }
     }
 

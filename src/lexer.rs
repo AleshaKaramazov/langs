@@ -128,11 +128,11 @@ impl<'a> Lexer<'a> {
                 }
             }
             '|' => {
-                self.input.next();
+                self.input.next(); 
                 if self.match_next('|') {
                     Token::Or
                 } else {
-                    panic!("ожидался ||");
+                    panic!("Ожидался оператор ||");
                 }
             }
             '<' => {
