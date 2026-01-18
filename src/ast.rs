@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Nat,
     Int,
@@ -25,22 +25,11 @@ pub enum Stmt {
         name: String,
         expr: Expr,
     },
-    AssignAdd {
-        name: String,
-        expr: Expr,
-    },
-    AssignSub {
-        name: String,
-        expr: Expr,
-    },
-    AssignMult {
-        name: String,
-        expr: Expr,
-    },
-    AssignDiv {
-        name: String,
-        expr: Expr,
-    },
+    AssignAdd { name: String, expr: Expr },
+    AssignSub { name: String, expr: Expr },
+    AssignMult { name: String, expr: Expr },
+    AssignDiv { name: String, expr: Expr },
+    
     If {
         cond: Expr,
         then_body: Vec<Stmt>,
@@ -78,15 +67,15 @@ pub enum Expr {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinOp {
     Equal,
-    Plus, 
+    Plus,
     Less,
     Greater,
     Mod,
     Mult,
     Or,
-    Div, 
+    Div,
     Sub,
 }
