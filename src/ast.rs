@@ -35,6 +35,14 @@ pub enum Stmt {
     },
     If {
         cond: Expr,
+        then_body: Vec<Stmt>,
+        else_if: Vec<(Expr, Vec<Stmt>)>,
+        else_body: Option<Vec<Stmt>>,
+    },
+    For {
+        var: String,
+        start: Expr,
+        end: Expr,
         body: Vec<Stmt>,
     },
     While {

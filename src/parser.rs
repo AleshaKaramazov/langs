@@ -69,11 +69,50 @@ impl<'a> Parser<'a> {
         stmts
     }
 
+
+    fn parse_for(&mut self) -> Stmt {
+        self.advance(); 
+
+        let var = match &self.current {
+            Token::Ident(s) => s.clone(),
+            _ => panic!("ожидалось имя переменной"),
+        };
+        self.advance();
+
+        self.expect(Token::From);
+        let start = self.parse_expr();
+
+
+        self.expect(Token::To);
+        let end = self.parse_expr();
+
+        if self.current == Token::Do {
+            self.advance();
+        }
+
+        let body = if self.current == Token::Begin {
+            self.advance();
+            self.parse_block(Token::End)
+        } else {
+            vec![self.parse_stmt()]
+        };
+
+        Stmt::For {
+            var,
+            start,
+            end,
+            body,
+        }
+    }
+
+ 
+
     fn parse_stmt(&mut self) -> Stmt {
         match &self.current {
             Token::Let => self.parse_let(),
             Token::If => self.parse_if(),
             Token::While => self.parse_while(),
+            Token::For => self.parse_for(),
             Token::Ident(_) => self.parse_assignment_or_expr(),
             _ => panic!("неожиданный statement: {:?}", self.current),
         }
@@ -112,42 +151,46 @@ impl<'a> Parser<'a> {
 
 
 
+
     fn parse_if(&mut self) -> Stmt {
-        self.advance(); // если
+        self.advance(); 
 
         let cond = self.parse_expr();
 
-        let then_body = if self.current == Token::Begin {
-            self.advance(); // начало
-            self.parse_block(Token::End)
-        } else {
-            self.expect(Token::Then);
-            vec![self.parse_stmt()]
-        };
+        let then_body = self.parse_if_body();
 
+        let mut else_if = Vec::new();
         let mut else_body = None;
 
-    
-        if self.current == Token::Else {
-            self.advance(); 
+        while self.current == Token::Else {
+            self.advance();
 
             if self.current == Token::If {
-                let else_if = self.parse_if();
-                else_body = Some(vec![else_if]);
-            } else if self.current == Token::Begin {
-                self.advance();
-                else_body = Some(self.parse_block(Token::End));
+                self.advance(); 
+                let cond = self.parse_expr();
+                let body = self.parse_if_body();
+                else_if.push((cond, body));
             } else {
-                self.expect(Token::Then);
-                else_body = Some(vec![self.parse_stmt()]);
+                else_body = Some(self.parse_if_body());
+                break;
             }
         }
 
         Stmt::If {
             cond,
             then_body,
-            else_if: vec![],
+            else_if,
             else_body,
+        }
+    }
+
+    fn parse_if_body(&mut self) -> Vec<Stmt> {
+        if self.current == Token::Begin {
+            self.advance();
+            self.parse_block(Token::End)
+        } else {
+            self.expect(Token::Then);
+            vec![self.parse_stmt()]
         }
     }
 

@@ -11,6 +11,12 @@ impl Env {
             scopes: vec![HashMap::new()],
         }
     }
+    pub fn define(&mut self, name: String, value: Value) {
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert(name, value);
+    }
 
     pub fn enter_scope(&mut self) {
         self.scopes.push(HashMap::new());

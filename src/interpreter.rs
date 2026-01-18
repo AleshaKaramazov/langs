@@ -71,6 +71,33 @@ impl Interpreter {
                 None
             }
 
+
+            Stmt::For { var, start, end, body } => {
+                let start_val = self.eval_expr(start);
+                let end_val = self.eval_expr(end);
+
+                let start = match start_val {
+                    Value::Int(v) => v,
+                    _ => panic!("начало цикла должно быть числом"),
+                };
+
+                let end = match end_val {
+                    Value::Int(v) => v,
+                    _ => panic!("конец цикла должно быть числом"),
+                };
+
+                self.env.enter_scope();
+
+                for i in start..=end {
+                    self.env.define(var.clone(), Value::Int(i));
+                    self.exec_block(body);
+                }
+
+                self.env.exit_scope();
+                None
+            }
+
+                        
             Stmt::If {
                 cond,
                 then_body,
@@ -112,6 +139,7 @@ impl Interpreter {
             }
         }
     }
+    
 
     fn eval_expr(&mut self, expr: &Expr) -> Value {
         match expr {
@@ -119,7 +147,6 @@ impl Interpreter {
             Expr::Bool(b) => Value::Bool(*b),
             Expr::String(s) => Value::String(s.clone()),
             Expr::Var(name) => self.env.get(name),
-
             Expr::Binary { left, op, right } => {
                 let l = self.eval_expr(left);
                 let r = self.eval_expr(right);

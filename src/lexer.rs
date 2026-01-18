@@ -9,6 +9,9 @@ pub enum Token {
     EndFunc,     
     Begin,       
     End,         
+    From,
+    To,
+    For,
     Let,
     If,
     Then,
@@ -224,8 +227,14 @@ impl<'a> Lexer<'a> {
             "если" => Token::If,
             "то" => Token::Then,
             "иначе" => Token::Else,
+
             "пока" => Token::While,
+            "для" => Token::For,
+            "от" => Token::From,
+            "до" => Token::To,
+
             "выполнить" => Token::Do,
+
             "вернуть" => Token::Return,
 
             "Нат" => Token::TypeNat,
