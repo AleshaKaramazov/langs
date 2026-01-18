@@ -1,15 +1,14 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Algorithm,
     Arguments,
     BeginFunc,   
     EndFunc,     
-    begin,       
-    end,         
+    Begin,       
+    End,         
     Let,
     If,
     Then,
@@ -35,6 +34,7 @@ pub enum Token {
     Colon,         
     PlusAssign,    
     Equal,         
+    Less,
     Greater,       
     Mod,           
     Or,            
@@ -111,6 +111,10 @@ impl<'a> Lexer<'a> {
                 } else {
                     panic!("ожидался ||");
                 }
+            }
+            '<' => {
+                self.input.next();
+                Token::Less
             }
             '>' => {
                 self.input.next();
@@ -214,8 +218,8 @@ impl<'a> Lexer<'a> {
             "аргументы" => Token::Arguments,
             "Начало" => Token::BeginFunc,
             "Конец" => Token::EndFunc,
-            "начало" => Token::begin,
-            "конец" => Token::end,
+            "начало" => Token::Begin,
+            "конец" => Token::End,
             "пусть" => Token::Let,
             "если" => Token::If,
             "то" => Token::Then,

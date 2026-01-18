@@ -127,6 +127,7 @@ impl Interpreter {
         match (l, r, op) {
             (Value::Int(a), Value::Int(b), BinOp::Equal) => Value::Bool(a == b),
             (Value::Int(a), Value::Int(b), BinOp::Greater) => Value::Bool(a > b),
+            (Value::Int(a), Value::Int(b), BinOp::Less) => Value::Bool(a < b),
             (Value::Int(a), Value::Int(b), BinOp::Mod) => Value::Int(a % b),
             (Value::Bool(a), Value::Bool(b), BinOp::Or) => Value::Bool(a || b),
             (Value::Int(a), Value::Int(b), BinOp::Sub) => Value::Int(a - b),

@@ -13,15 +13,15 @@ use interpreter::Interpreter;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-
     if args.len() < 2 {
         eprintln!("использование: язык <файл.алг>");
         return;
     }
-
     let filename = &args[1];
     let source = fs::read_to_string(filename)
         .expect("не удалось прочитать файл");
+
+
 
     let lexer = Lexer::new(&source);
     let mut parser = Parser::new(lexer);

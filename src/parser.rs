@@ -115,9 +115,9 @@ impl<'a> Parser<'a> {
         let cond = self.parse_expr();
         self.expect(Token::Then);
 
-        let body = if self.current == Token::begin {
+        let body = if self.current == Token::Begin {
             self.advance();
-            let b = self.parse_block(Token::end);
+            let b = self.parse_block(Token::End);
             b
         } else {
             vec![self.parse_stmt()]
@@ -126,16 +126,23 @@ impl<'a> Parser<'a> {
         Stmt::If { cond, body }
     }
 
+
+
     fn parse_while(&mut self) -> Stmt {
         self.advance();
         let cond = self.parse_expr();
         self.expect(Token::Do);
 
-        self.expect(Token::begin);
-        let body = self.parse_block(Token::end);
+        let body = if self.current == Token::Begin {
+            self.advance();
+            self.parse_block(Token::End)
+        } else {
+            vec![self.parse_stmt()]
+        };
 
         Stmt::While { cond, body }
     }
+
 
     fn parse_assignment_or_expr(&mut self) -> Stmt {
         let name = match &self.current {
@@ -229,12 +236,14 @@ impl<'a> Parser<'a> {
     fn parse_cmp(&mut self) -> Expr {
         let mut expr = self.parse_primary();
         while matches!(self.current, 
-            Token::Equal | Token::Greater | Token::Or | Token::Mod | Token::Minus) {
+            Token::Equal | Token::Greater | Token::Less 
+            | Token::Or | Token::Mod | Token::Minus) {
             let op = match self.current {
                 Token::Equal => BinOp::Equal,
                 Token::Greater => BinOp::Greater,
                 Token::Mod => BinOp::Mod,
                 Token::Minus => BinOp::Sub,
+                Token::Less => BinOp::Less,
                 _ => unreachable!(),
             };
             self.advance();
@@ -301,6 +310,7 @@ impl<'a> Parser<'a> {
         let intrinsic = self.current == Token::Bang;
         if intrinsic {
             self.advance();
+
         }
 
         self.expect(Token::LParen);

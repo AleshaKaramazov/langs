@@ -65,6 +65,7 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum BinOp {
     Equal,
+    Less,
     Greater,
     Mod,
     Or,

@@ -21,7 +21,7 @@ impl Env {
     }
 
     pub fn declare(&mut self, name: String, val: Value) {
-        for scope in self.scopes.iter().take(self.scopes.len() - 1)         {
+        for scope in self.scopes.iter().take(self.scopes.len() - 1){
             if scope.contains_key(&name) {
                 panic!("переменная `{}` уже объявлена в родительском блоке", name);
             }
