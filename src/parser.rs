@@ -241,8 +241,10 @@ impl<'a> Parser<'a> {
     fn parse_while(&mut self) -> Stmt {
         self.advance();
         let cond = self.parse_expr();
-        self.expect(Token::Do);
 
+        if self.current == Token::Do  {
+            self.advance();
+        }
         let body = if self.current == Token::Begin {
             self.advance();
             self.parse_block(Token::End)
@@ -282,6 +284,18 @@ impl<'a> Parser<'a> {
                 self.expect(Token::Semicolon);
                 Stmt::AssignSub { name, expr }
             }
+            Token::MultAssigment => {
+                self.advance();
+                let expr = self.parse_expr();
+                self.expect(Token::Semicolon);
+                Stmt::AssignMult { name, expr }
+            }
+            Token::DivAssign => {
+                self.advance();
+                let expr = self.parse_expr();
+                self.expect(Token::Semicolon);
+                Stmt::AssignDiv { name, expr }
+            }
             Token::Bang | Token::LParen => {
                 let call = self.finish_call(name);
                 self.expect(Token::Semicolon);
@@ -301,7 +315,14 @@ impl<'a> Parser<'a> {
 
     while matches!(
         self.current,
-        Token::Equal | Token::Greater | Token::Mod | Token::Or | Token::Minus
+        Token::Equal 
+        | Token::Greater 
+        | Token::Mod 
+        | Token::Or 
+        | Token::Minus 
+        | Token::Mult
+        | Token::Div
+        | Token::Plus
     ) {
         let op = match self.current {
             Token::Equal => BinOp::Equal,
@@ -309,6 +330,9 @@ impl<'a> Parser<'a> {
             Token::Mod => BinOp::Mod,
             Token::Or => BinOp::Or,
             Token::Minus => BinOp::Sub,
+            Token::Mult => BinOp::Mult,
+            Token::Plus => BinOp::Plus,
+            Token::Div => BinOp::Div,
             _ => unreachable!(),
         };
 
@@ -347,13 +371,18 @@ impl<'a> Parser<'a> {
         let mut expr = self.parse_primary();
         while matches!(self.current, 
             Token::Equal | Token::Greater | Token::Less 
-            | Token::Or | Token::Mod | Token::Minus) {
+            | Token::Or  | Token::Mod     | Token::Minus 
+            | Token::Plus | Token::Mult | Token::Div ){
             let op = match self.current {
                 Token::Equal => BinOp::Equal,
                 Token::Greater => BinOp::Greater,
                 Token::Mod => BinOp::Mod,
                 Token::Minus => BinOp::Sub,
                 Token::Less => BinOp::Less,
+                Token::Mult => BinOp::Mult,
+                Token::Div => BinOp::Div,
+                Token::Plus => BinOp::Plus,
+                Token::Or => BinOp::Or,
                 _ => unreachable!(),
             };
             self.advance();
@@ -376,7 +405,7 @@ impl<'a> Parser<'a> {
                 op: BinOp::Sub,
                 right: Box::new(expr),
             };
-        }
+        } 
         match &self.current {
 
             Token::Int(v) => {

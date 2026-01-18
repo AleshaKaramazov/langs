@@ -70,8 +70,28 @@ impl Interpreter {
                 }
                 None
             }
-
-
+            Stmt::AssignMult { name, expr } => {
+                let left = self.env.get(name);
+                let right = self.eval_expr(expr);
+                match (left, right) {
+                    (Value::Int(a), Value::Int(b)) => {
+                        self.env.assign(name, Value::Int(a * b));
+                    }
+                    _=> panic!("оператор *= можно использовать только для 2х чисел")
+                }
+                None
+            }
+            Stmt::AssignDiv { name, expr } => {
+                let left = self.env.get(name);
+                let right = self.eval_expr(expr);
+                match (left, right) {
+                    (Value::Int(a), Value::Int(b)) => {
+                        self.env.assign(name, Value::Int(a / b));
+                    }
+                    _=> panic!("оператор *= можно использовать только для 2х чисел")
+                }
+                None
+            }
             Stmt::For { var, start, end, body } => {
                 let start_val = self.eval_expr(start);
                 let end_val = self.eval_expr(end);
@@ -174,6 +194,10 @@ impl Interpreter {
             (Value::Int(a), Value::Int(b), BinOp::Less) => Value::Bool(a < b),
             (Value::Int(a), Value::Int(b), BinOp::Mod) => Value::Int(a % b),
             (Value::Bool(a), Value::Bool(b), BinOp::Or) => Value::Bool(a || b),
+            (Value::Int(a), Value::Int(b), BinOp::Plus) => Value::Int(a + b),
+            (Value::Int(a), Value::Int(b), BinOp::Mult) => Value::Int(a * b),
+            (Value::Int(a), Value::Int(b), BinOp::Div) => Value::Int(a / b),
+            (Value::String(a), Value::String(b), BinOp::Equal) => Value::Bool(a == b),
             (Value::Int(a), Value::Int(b), BinOp::Sub) => Value::Int(a - b),
             _ => panic!("некорректная бинарная операция"),
         }

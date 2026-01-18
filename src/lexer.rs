@@ -33,12 +33,17 @@ pub enum Token {
     Assign,        
     Define,        
     MinusAssign,   
+    Plus,
     Minus,         
+    Div,
     Colon,         
     PlusAssign,    
+    DivAssign,
     Equal,         
     Less,
     Greater,       
+    Mult,
+    MultAssigment,
     Mod,           
     Or,            
 
@@ -90,6 +95,14 @@ impl<'a> Lexer<'a> {
         }
 
         match ch {
+            '/' => {
+                self.input.next();
+                if self.match_next('=') {
+                    Token::DivAssign
+                } else {
+                    Token::Div
+                }
+            }
             ':' => {
                 self.input.next();
                 if self.match_next('=') {
@@ -111,7 +124,7 @@ impl<'a> Lexer<'a> {
                 if self.match_next('=') {
                     Token::PlusAssign
                 } else {
-                    panic!("неожиданный +");
+                    Token::Plus
                 }
             }
             '|' => {
@@ -149,6 +162,15 @@ impl<'a> Lexer<'a> {
             ';' => {
                 self.input.next();
                 Token::Semicolon
+            }
+            '*' => {
+                self.input.next();
+                if self.input.peek() == Some(&'=') {
+                    self.input.next();
+                    Token::MultAssigment
+                } else {
+                    Token::Mult
+                }
             }
             '-' => {
                 self.input.next();

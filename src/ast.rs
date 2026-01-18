@@ -33,6 +33,14 @@ pub enum Stmt {
         name: String,
         expr: Expr,
     },
+    AssignMult {
+        name: String,
+        expr: Expr,
+    },
+    AssignDiv {
+        name: String,
+        expr: Expr,
+    },
     If {
         cond: Expr,
         then_body: Vec<Stmt>,
@@ -73,9 +81,12 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum BinOp {
     Equal,
+    Plus, 
     Less,
     Greater,
     Mod,
+    Mult,
     Or,
+    Div, 
     Sub,
 }
