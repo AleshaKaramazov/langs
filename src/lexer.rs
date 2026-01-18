@@ -49,6 +49,13 @@ pub enum Token {
 
     Bang,       
     Eof,
+    
+    //syntax sugar
+    ForAll,
+    Всех,
+    В,
+    Диапазоне,
+    DotDot, // ..   
 }
 
 pub struct Lexer<'a> {
@@ -156,6 +163,15 @@ impl<'a> Lexer<'a> {
                 self.input.next();
                 Token::Bang
             }
+            '.' => {
+                self.input.next();
+                if self.input.peek() == Some(&'.') {
+                    self.input.next();
+                    Token::DotDot
+                } else {
+                    panic!("неизвестный символ: {}", ch);
+                }
+            }
             _ => panic!("неизвестный символ: {}", ch),
         }
     }
@@ -229,7 +245,7 @@ impl<'a> Lexer<'a> {
             "иначе" => Token::Else,
 
             "пока" => Token::While,
-            "для" => Token::For,
+            "для_" => Token::For,
             "от" => Token::From,
             "до" => Token::To,
 
@@ -244,6 +260,13 @@ impl<'a> Lexer<'a> {
 
             "Истина" => Token::Bool(true),
             "Ложь" => Token::Bool(false),
+                
+            //syntax sugar
+            "для" => Token::ForAll,
+            "всех" => Token::Всех,
+            "в" => Token::В,
+            "диапазоне" => Token::Диапазоне,
+            ".." => Token::DotDot,
 
             _ => Token::Ident(ident),
         }

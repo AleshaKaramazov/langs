@@ -185,7 +185,7 @@ impl Interpreter {
                 let values:Vec<Value> =
                     args.iter().map(|e| self.eval_expr(e)).collect();
                 self.print(values);
-                Value::Unit
+                Value::Int(0)
             }
 
             "считать" => {
@@ -229,7 +229,7 @@ impl Interpreter {
             fmt = s.clone();
             args = values[1..].to_vec();
         } else {
-            fmt = "{:?}".to_string();
+            fmt = "{}".to_string();
             args = values;
         }
 
@@ -241,7 +241,7 @@ impl Interpreter {
             if c == '{' && chars.peek() == Some(&'}') {
                 chars.next();
                 if let Some(v) = arg_iter.next() {
-                    result.push_str(&format!("{:?}", v));
+                    result.push_str(&format!("{}", v));
                 }
             } else {
                 result.push(c);

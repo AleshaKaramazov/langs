@@ -69,6 +69,49 @@ impl<'a> Parser<'a> {
         stmts
     }
 
+    fn parse_human_for(&mut self) -> Stmt {
+        self.expect(Token::ForAll);
+        self.expect(Token::Всех);
+        self.expect(Token::LParen);
+
+        let var = match &self.current {
+            Token::Ident(s) => s.clone(),
+            _ => panic!("ожидалось имя переменной"),
+        };
+        self.advance();
+
+        self.expect(Token::RParen);
+        self.expect(Token::В);
+        self.expect(Token::Диапазоне);
+        self.expect(Token::LParen);
+
+        let start = self.parse_expr();
+
+        self.expect(Token::DotDot);
+
+        let end = self.parse_expr();
+
+        self.expect(Token::RParen);
+
+        if self.current == Token::Do {
+            self.advance();
+        }
+
+        let body = if self.current == Token::Begin {
+            self.advance();
+            self.parse_block(Token::End)
+        } else {
+            vec![self.parse_stmt()]
+        };
+        
+        Stmt::For {
+            var,
+            start,
+            end,
+            body,
+        }
+    }
+
 
     fn parse_for(&mut self) -> Stmt {
         self.advance(); 
@@ -113,6 +156,7 @@ impl<'a> Parser<'a> {
             Token::If => self.parse_if(),
             Token::While => self.parse_while(),
             Token::For => self.parse_for(),
+            Token::ForAll => self.parse_human_for(),
             Token::Ident(_) => self.parse_assignment_or_expr(),
             _ => panic!("неожиданный statement: {:?}", self.current),
         }
