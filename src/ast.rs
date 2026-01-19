@@ -61,6 +61,11 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Var(String),
+    Array(Vec<Expr>), 
+    Index {
+        target: Box<Expr>,
+        index: Box<Expr>,
+    },
     Unary {
         op: UnaryOp,
         right: Box<Expr>,

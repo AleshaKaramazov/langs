@@ -20,6 +20,10 @@ pub enum Token {
     Do,
     Return,
 
+    Array,
+    LBracket,
+    RBracket,
+
     TypeNat,
     TypeInt,
     TypeBool,
@@ -137,6 +141,8 @@ impl<'a> Lexer<'a> {
                     panic!("Ожидался оператор ||");
                 }
             }
+            '[' => { self.input.next(); Token::LBracket }
+            ']' => { self.input.next(); Token::RBracket }
             '&' => {
                 self.input.next(); 
                 if self.match_next('&') {
@@ -293,6 +299,8 @@ impl<'a> Lexer<'a> {
             "не" => Token::Not,
             "Истина" => Token::Bool(true),
             "Ложь" => Token::Bool(false),
+
+            "массив" => Token::Array,
                 
             //syntax sugar
             "для" => Token::ForAll,

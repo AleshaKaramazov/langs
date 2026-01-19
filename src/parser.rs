@@ -392,6 +392,24 @@ impl<'a> Parser<'a> {
                 self.advance();
                 e
             }
+            Token::Array => {
+                self.advance();
+                self.expect(Token::Bang); 
+                self.expect(Token::LBracket);
+                let mut elements = Vec::new();
+                if self.current != Token::RBracket {
+                    loop {
+                        elements.push(self.parse_expr());
+                        if self.current == Token::Comma { 
+                            self.advance(); 
+                        } else { 
+                            break; 
+                        }
+                    }
+                }
+                self.expect(Token::RBracket);
+                Expr::Array(elements)
+            }
             Token::Bool(b) => {
                 let e = Expr::Bool(*b);
                 self.advance();
@@ -405,11 +423,30 @@ impl<'a> Parser<'a> {
             Token::Ident(name) => {
                 let n = name.clone();
                 self.advance();
-                if self.current == Token::LParen || self.current == Token::Bang {
-                    self.finish_call(n)
+                
+                let expr = if self.current == Token::LParen {
+                    self.finish_call(n, false)
+                } else if self.current == Token::Bang {
+                    self.advance();
+                    
+                    if self.current == Token::LParen {
+                        self.finish_call(n, true)
+                    } else if self.current == Token::LBracket {
+                        self.advance(); 
+                        let index = self.parse_expr();
+                        self.expect(Token::RBracket);
+                        Expr::Index {
+                            target: Box::new(Expr::Var(n)),
+                            index: Box::new(index),
+                        }
+                    } else {
+                        panic!("Ожидалось ( или [ после '!'");
+                    }
                 } else {
                     Expr::Var(n)
-                }
+                };
+
+                expr
             }
             Token::LParen => {
                 self.advance();
@@ -421,10 +458,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn finish_call(&mut self, name: String) -> Expr {
-        let intrinsic = self.current == Token::Bang;
-        if intrinsic { self.advance(); }
-        
+    fn finish_call(&mut self, name: String, intrinsic: bool) -> Expr {
         self.expect(Token::LParen);
         let mut args = Vec::new();
         if self.current != Token::RParen {

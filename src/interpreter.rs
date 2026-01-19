@@ -131,6 +131,23 @@ impl Interpreter {
                     (UnaryOp::Not, Value::Bool(b)) => Value::Bool(!b),
                     _ => panic!("Операция 'не' применима только к логическим значениям"),
                 }
+            },
+            Expr::Array(elements) => {
+                let vals = elements.iter().map(|e| self.eval_expr(e)).collect();
+                Value::Array(vals)
+            }
+            Expr::Index { target, index } => {
+                let t_val = self.eval_expr(target);
+                let i_val = self.eval_expr(index);
+
+                match (t_val, i_val) {
+                    (Value::Array(arr), Value::Int(idx)) => {
+                        arr.get(idx as usize)
+                            .cloned()
+                            .expect("Индекс за пределами массива")
+                    }
+                    _ => panic!("Индексация возможна только для массивов по целому числу"),
+                }
             }
             Expr::Call { name, args, intrinsic } => {
                 if *intrinsic {

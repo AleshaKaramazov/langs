@@ -41,6 +41,12 @@ impl Visualizer {
                 let formatted_args: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
                 let suffix = if *intrinsic { "!" } else { "" };
                 format!("{}{}({})", name, suffix, formatted_args.join(", "))
+            } 
+            Expr::Array(v) => {
+                format!("{:?}", v) 
+            }
+            Expr::Index { target, index } => {
+                format!("{:?} -> index {:?}", target, index)
             }
         }
     }
