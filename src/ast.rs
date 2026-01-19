@@ -49,12 +49,22 @@ pub enum Stmt {
     Expr(Expr),
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UnaryOp {
+    Not,
+}
+
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i64),
     Bool(bool),
     String(String),
     Var(String),
+    Unary {
+        op: UnaryOp,
+        right: Box<Expr>,
+    },
     Call {
         name: String,
         args: Vec<Expr>,

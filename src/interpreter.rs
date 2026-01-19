@@ -125,6 +125,13 @@ impl Interpreter {
                 let r = self.eval_expr(right);
                 self.eval_binary_values(l, r, op)
             }
+            Expr::Unary { op, right } => {
+                let val = self.eval_expr(right);
+                match (op, val) {
+                    (UnaryOp::Not, Value::Bool(b)) => Value::Bool(!b),
+                    _ => panic!("Операция 'не' применима только к логическим значениям"),
+                }
+            }
             Expr::Call { name, args, intrinsic } => {
                 if *intrinsic {
                     self.call_intrinsic(name, args)

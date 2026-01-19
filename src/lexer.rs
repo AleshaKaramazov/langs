@@ -46,7 +46,8 @@ pub enum Token {
     MultAssigment,
     Mod,     
     And,
-    Or,            
+    Or,  
+    Not,
 
     LParen,
     RParen,
@@ -289,6 +290,7 @@ impl<'a> Lexer<'a> {
             "Лог" => Token::TypeBool,
             "Строка" => Token::TypeString,
 
+            "не" => Token::Not,
             "Истина" => Token::Bool(true),
             "Ложь" => Token::Bool(false),
                 

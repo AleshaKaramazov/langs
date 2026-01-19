@@ -370,6 +370,14 @@ impl<'a> Parser<'a> {
 
     fn parse_primary(&mut self) -> Expr {
         match &self.current {
+            Token::Not => {
+                self.advance();
+                let expr = self.parse_primary();
+                Expr::Unary {
+                    op: UnaryOp::Not,
+                    right: Box::new(expr),
+                }
+            }
             Token::Minus => {
                 self.advance();
                 let expr = self.parse_primary();
