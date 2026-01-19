@@ -2,11 +2,13 @@ mod lexer;
 mod parser;
 mod ast;
 mod interpreter;
+mod visualizer;
 mod env;
 mod value;
 
 use std::fs;
 
+use visualizer::Visualizer;
 use lexer::Lexer;
 use parser::Parser;
 use interpreter::Interpreter;
@@ -17,10 +19,21 @@ fn main() {
         eprintln!("использование: язык <файл.алг>");
         return;
     }
+
     let filename = &args[1];
     let source = fs::read_to_string(filename)
         .expect("не удалось прочитать файл");
 
+    if args.len() > 2 && args[2] == "--draw" {
+        let viz = Visualizer::new();
+        let dot_output = viz.translate(source);
+
+        fs::write("graph.dot", dot_output)
+            .expect("Не удалось записать DOT файл");
+        println!("Граф сохранен в graph.dot. Используйте\
+            'dot -Tpng graph.dot -o out.png' для рендера.");
+        return;
+    }
 
 
     let lexer = Lexer::new(&source);

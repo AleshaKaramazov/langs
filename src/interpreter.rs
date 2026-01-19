@@ -152,6 +152,7 @@ impl Interpreter {
             (Value::String(a), Value::String(b), BinOp::Plus) => Value::String(a + &b), 
             (Value::String(a), Value::String(b), BinOp::Equal) => Value::Bool(a == b),
             
+            (Value::Bool(a), Value::Bool(b), BinOp::And) => Value::Bool(a && b),
             (Value::Bool(a), Value::Bool(b), BinOp::Or) => Value::Bool(a || b),
             (Value::Bool(a), Value::Bool(b), BinOp::Equal) => Value::Bool(a == b),
 

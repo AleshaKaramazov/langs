@@ -286,13 +286,27 @@ impl<'a> Parser<'a> {
 
 
     fn parse_expr(&mut self) -> Expr {
-        let mut left = self.parse_comparison();
+        let mut left = self.parse_and(); 
         while self.current == Token::Or {
+            self.advance();
+            let right = self.parse_and();
+            left = Expr::Binary {
+                left: Box::new(left),
+                op: BinOp::Or,
+                right: Box::new(right),
+            };
+        }
+        left
+    }
+
+    fn parse_and(&mut self) -> Expr {
+        let mut left = self.parse_comparison();
+        while self.current == Token::And {
             self.advance();
             let right = self.parse_comparison();
             left = Expr::Binary {
                 left: Box::new(left),
-                op: BinOp::Or,
+                op: BinOp::And,
                 right: Box::new(right),
             };
         }

@@ -76,6 +76,7 @@ pub enum BinOp {
     Mod,
     Mult,
     Or,
+    And,
     Div,
     Sub,
 }

@@ -44,7 +44,8 @@ pub enum Token {
     Greater,       
     Mult,
     MultAssigment,
-    Mod,           
+    Mod,     
+    And,
     Or,            
 
     LParen,
@@ -133,6 +134,14 @@ impl<'a> Lexer<'a> {
                     Token::Or
                 } else {
                     panic!("Ожидался оператор ||");
+                }
+            }
+            '&' => {
+                self.input.next(); 
+                if self.match_next('&') {
+                    Token::And
+                } else {
+                    panic!("Ожидался оператор &&");
                 }
             }
             '<' => {
