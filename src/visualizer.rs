@@ -207,6 +207,7 @@ impl Visualizer {
                 writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", cond_id, exit_id).unwrap();
                 (init_id, exit_id)
             }
+            Stmt::ForEach { var:_, collection:_, body:_ } => todo!(),
         }
     }
 }

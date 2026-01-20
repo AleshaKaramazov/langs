@@ -256,21 +256,37 @@ impl<'a> Parser<'a> {
         self.advance();
         self.expect(Token::RParen);
         self.expect(Token::В);
-        self.expect(Token::Диапазоне);
-        self.expect(Token::LParen);
-        let start = self.parse_expr();
-        self.expect(Token::DotDot);
-        let end = self.parse_expr();
-        self.expect(Token::RParen);
-        if self.current == Token::Do { self.advance(); }
 
-        let body = if self.current == Token::Begin {
+        if self.current == Token::Диапазоне {
+            self.advance();
+            self.expect(Token::LParen);
+            let start = self.parse_expr();
+            self.expect(Token::DotDot);
+            let end = self.parse_expr();
+            self.expect(Token::RParen);
+            if self.current == Token::Do { self.advance(); }
+            let body = self.parse_block_helper();
+            Stmt::For { var, start, end, body }
+        } else if self.current == Token::Массиве {
+            self.advance();
+            self.expect(Token::LParen);
+            let collection = self.parse_expr();
+            self.expect(Token::RParen);
+            if self.current == Token::Do { self.advance(); }
+            let body = self.parse_block_helper();
+            Stmt::ForEach { var, collection, body }
+        } else {
+            panic!("Ожидалось 'диапазоне' или 'массиве'");
+        }
+    }
+
+    fn parse_block_helper(&mut self) -> Vec<Stmt> {
+        if self.current == Token::Begin {
             self.advance();
             self.parse_block(Token::End)
         } else {
             vec![self.parse_stmt()]
-        };
-        Stmt::For { var, start, end, body }
+        }
     }
 
     fn parse_type(&mut self) -> Type {

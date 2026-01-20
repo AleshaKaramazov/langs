@@ -4,7 +4,7 @@ pub enum Type {
     Bool,
     String,
     Array(Box<Type>),
-    Void, 
+    _Void, 
     Infer, 
 }
 
@@ -41,6 +41,11 @@ pub enum Stmt {
         var: String,
         start: Expr,
         end: Expr,
+        body: Vec<Stmt>,
+    },
+    ForEach {
+        var: String,
+        collection: Expr,
         body: Vec<Stmt>,
     },
     While {

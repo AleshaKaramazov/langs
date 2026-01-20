@@ -75,6 +75,25 @@ impl Interpreter {
                 }
                 Ok(None)
             }
+            Stmt::ForEach { var, collection, body } => {
+                let coll_val = self.eval_expr(collection)?;
+                
+                if let Value::Array(elements) = coll_val {
+                    for val in elements {
+                        self.env.enter_scope();
+                        self.env.declare(var.clone(), val); 
+                        let result = self.exec_block(body)?;
+                        self.env.exit_scope();
+                        
+                        if let Some(ret) = result {
+                            return Ok(Some(ret));
+                        }
+                    }
+                } else {
+                    return Err("Ожидался массив для итерации".to_string());
+                }
+                Ok(None)
+            },
             Stmt::While { cond, body } => {
                 loop {
                     let cond_val = self.eval_expr(cond)?;

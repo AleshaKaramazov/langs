@@ -91,6 +91,19 @@ impl TypeChecker {
                 };
 
                 self.env.declare(name.clone(), final_ty)?;
+            },
+            Stmt::ForEach { var, collection, body } => {
+                let coll_ty = self.check_expr(collection)?;
+                
+                if let Type::Array(inner_ty) = coll_ty {
+                    self.env.enter_scope();
+                    // Переменная цикла получает тип элементов массива
+                    self.env.declare(var.clone(), *inner_ty)?; 
+                    self.check_block(body)?;
+                    self.env.exit_scope();
+                } else {
+                    return Err(format!("Нельзя итерироваться по типу {:?}", coll_ty));
+                }
             }
             Stmt::Assign { name, expr } => {
                 let expr_ty = self.check_expr(expr)?;

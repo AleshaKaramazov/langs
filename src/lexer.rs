@@ -66,6 +66,7 @@ pub enum Token {
     ForAll,
     Всех,
     В,
+    Массиве,
     Диапазоне,
     DotDot,  
 }
@@ -309,6 +310,7 @@ impl<'a> Lexer<'a> {
             "Ложь" => Token::Bool(false),
 
             "массив" => Token::Array,
+            "массиве" => Token::Массиве,
                 
             //syntax sugar
             "и" => Token::And,
