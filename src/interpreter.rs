@@ -3,6 +3,8 @@ use crate::env::Env;
 use crate::value::Value;
 use std::io::{self, Write};
 
+type RuntimeResult<T> = Result<T, String>;
+
 pub struct Interpreter {
     env: Env,
 }
@@ -12,255 +14,273 @@ impl Interpreter {
         Self { env: Env::new() }
     }
 
-    pub fn run(&mut self, alg: &Algorithm) {
+    pub fn run(&mut self, alg: &Algorithm) -> RuntimeResult<()> {
         if alg.name != "Главная" {
-            panic!("Точкой входа должен быть Алгоритм 'Главная'");
+            return Err("Точкой входа должен быть Алгоритм 'Главная'".to_string());
         }
         self.env.enter_scope();
-        self.exec_block(&alg.body);
+        self.exec_block(&alg.body)?;
         self.env.exit_scope();
+        Ok(())
     }
 
-    fn exec_block(&mut self, stmts: &[Stmt]) -> Option<Value> {
+    fn exec_block(&mut self, stmts: &[Stmt]) -> RuntimeResult<Option<Value>> {
         self.env.enter_scope();
         let mut ret = None;
+        
         for stmt in stmts {
-            if let Some(v) = self.exec_stmt(stmt) {
+            if let Some(v) = self.exec_stmt(stmt)? {
                 ret = Some(v);
-                break;
+                break; 
             }
         }
+        
         self.env.exit_scope();
-        ret
+        Ok(ret)
     }
 
-    fn exec_stmt(&mut self, stmt: &Stmt) -> Option<Value> {
+    fn exec_stmt(&mut self, stmt: &Stmt) -> RuntimeResult<Option<Value>> {
         match stmt {
             Stmt::Let { name, expr, .. } => {
-                let val = self.eval_expr(expr);
-                self.env.declare(name.clone(), val);
-                None
+                let val = self.eval_expr(expr)?;
+                self.env.declare(name.clone(), val); 
+                Ok(None)
             }
             Stmt::Assign { name, expr } => {
-                let val = self.eval_expr(expr);
+                let val = self.eval_expr(expr)?;
                 self.env.assign(name, val);
-                None
+                Ok(None)
             }
-            Stmt::AssignAdd { name, expr } => self.exec_compound(name, expr, BinOp::Plus),
-            Stmt::AssignSub { name, expr } => self.exec_compound(name, expr, BinOp::Sub),
-            Stmt::AssignMult { name, expr } => self.exec_compound(name, expr, BinOp::Mult),
-            Stmt::AssignDiv { name, expr } => self.exec_compound(name, expr, BinOp::Div),
+            // Сахар: x += 1
+            Stmt::AssignAdd { name, expr } => self.exec_compound_assign(name, expr, BinOp::Plus),
+            Stmt::AssignSub { name, expr } => self.exec_compound_assign(name, expr, BinOp::Sub),
+            Stmt::AssignMult { name, expr } => self.exec_compound_assign(name, expr, BinOp::Mult),
+            Stmt::AssignDiv { name, expr } => self.exec_compound_assign(name, expr, BinOp::Div),
 
             Stmt::If { cond, then_body, else_if, else_body } => {
-                if self.is_truthy(cond) {
-                    self.exec_block(then_body);
-                } else {
-                    let mut handled = false;
-                    for (elif_cond, elif_body) in else_if {
-                        if self.is_truthy(elif_cond) {
-                            self.exec_block(elif_body);
-                            handled = true;
-                            break;
-                        }
-                    }
-                    if !handled {
-                        if let Some(body) = else_body {
-                            self.exec_block(body);
-                        }
+                let cond_val = self.eval_expr(cond)?;
+                if self.is_truthy(&cond_val)? {
+                    return self.exec_block(then_body);
+                }
+                
+                for (e_cond, e_body) in else_if {
+                    let e_val = self.eval_expr(e_cond)?;
+                    if self.is_truthy(&e_val)? {
+                        return self.exec_block(e_body);
                     }
                 }
-                None
-            }
 
+                if let Some(body) = else_body {
+                    return self.exec_block(body);
+                }
+                Ok(None)
+            }
             Stmt::While { cond, body } => {
-                while self.is_truthy(cond) {
-                    if let Some(v) = self.exec_block(body) {
-                        return Some(v);
+                loop {
+                    let cond_val = self.eval_expr(cond)?;
+                    if !self.is_truthy(&cond_val)? {
+                        break;
+                    }
+                    if let Some(ret) = self.exec_block(body)? {
+                        return Ok(Some(ret));
                     }
                 }
-                None
+                Ok(None)
             }
+            Stmt::For { var, start, end, body } => {
+                let start_val = self.eval_expr(start)?;
+                let end_val = self.eval_expr(end)?;
 
-           Stmt::For { var, start, end, body } => {
-                let start_val_raw = self.eval_expr(start);
-                let end_val_raw = self.eval_expr(end);
-
-                let start_val = self.get_int(start_val_raw);
-                let end_val = self.get_int(end_val_raw);
-
-                self.env.enter_scope();
-                for i in start_val..=end_val {
-                    self.env.declare(var.clone(), Value::Int(i));
-                    if let Some(v) = self.exec_block(body) {
+                match (start_val, end_val) {
+                    (Value::Int(s), Value::Int(e)) => {
+                        self.env.enter_scope();
+                        self.env.declare(var.clone(), Value::Int(s)); 
+                        for i in s..=e {
+                            self.env.assign(var, Value::Int(i));
+                            if let Some(ret) = self.exec_block(body)? {
+                                self.env.exit_scope();
+                                return Ok(Some(ret));
+                            }
+                        }
                         self.env.exit_scope();
-                        return Some(v);
+                        Ok(None)
                     }
+                    (t1, t2) => Err(format!("Границы цикла 'для' должны быть Цел, получено {} и {}", t1, t2))
                 }
-                self.env.exit_scope();
-                None
             }
             Stmt::Expr(expr) => {
-                self.eval_expr(expr);
-                None
+                self.eval_expr(expr)?;
+                Ok(None)
             }
         }
     }
 
-    fn exec_compound(&mut self, name: &str, expr: &Expr, op: BinOp) -> Option<Value> {
-        let left = self.env.get(name);
-        let right = self.eval_expr(expr);
-        let result = self.eval_binary_values(left, right, &op);
-        self.env.assign(name, result);
-        None
+    fn exec_compound_assign(&mut self, name: &str, expr: &Expr, op: BinOp) -> RuntimeResult<Option<Value>> {
+        let current_val = self.env.get(name); 
+        let operand_val = self.eval_expr(expr)?;
+        
+        let new_val = self.apply_binary_op(current_val, operand_val, op)?;
+        self.env.assign(name, new_val);
+        Ok(None)
     }
 
-    fn eval_expr(&mut self, expr: &Expr) -> Value {
+    fn eval_expr(&mut self, expr: &Expr) -> RuntimeResult<Value> {
         match expr {
-            Expr::Int(v) => Value::Int(*v),
-            Expr::Bool(b) => Value::Bool(*b),
-            Expr::String(s) => Value::String(s.clone()),
-            Expr::Var(name) => self.env.get(name),
-            Expr::Binary { left, op, right } => {
-                let l = self.eval_expr(left);
-                let r = self.eval_expr(right);
-                self.eval_binary_values(l, r, op)
-            }
-            Expr::Unary { op, right } => {
-                let val = self.eval_expr(right);
-                match (op, val) {
-                    (UnaryOp::Not, Value::Bool(b)) => Value::Bool(!b),
-                    _ => panic!("Операция 'не' применима только к логическим значениям"),
-                }
+            Expr::Int(i) => Ok(Value::Int(*i)),
+            Expr::Bool(b) => Ok(Value::Bool(*b)),
+            Expr::String(s) => Ok(Value::String(s.clone())),
+            Expr::Var(name) => {
+                Ok(self.env.get(name)) 
             },
-            Expr::Array(elements) => {
-                let vals = elements.iter().map(|e| self.eval_expr(e)).collect();
-                Value::Array(vals)
+            Expr::Array(elems) => {
+                let mut values = Vec::new();
+                for e in elems {
+                    values.push(self.eval_expr(e)?);
+                }
+                Ok(Value::Array(values))
             }
             Expr::Index { target, index } => {
-                let t_val = self.eval_expr(target);
-                let i_val = self.eval_expr(index);
+                let target_val = self.eval_expr(target)?;
+                let index_val = self.eval_expr(index)?;
 
-                match (t_val, i_val) {
+                match (target_val, index_val) {
                     (Value::Array(arr), Value::Int(idx)) => {
-                        arr.get(idx as usize)
-                            .cloned()
-                            .expect("Индекс за пределами массива")
+                        let i = idx as usize;
+                        if i >= arr.len() {
+                            return Err(format!("Индекс массива вне границ: длина {}, индекс {}", arr.len(), i));
+                        }
+                        Ok(arr[i].clone())
                     }
-                    _ => panic!("Индексация возможна только для массивов по целому числу"),
+                    (Value::Array(_), t) => Err(format!("Индекс должен быть Цел, получено {}", t)),
+                    (t, _) => Err(format!("Индексация применима только к массивам, получено {}", t)),
+                }
+            }
+            Expr::Binary { left, op, right } => {
+                let l = self.eval_expr(left)?;
+                let r = self.eval_expr(right)?;
+                self.apply_binary_op(l, r, *op)
+            }
+            Expr::Unary { op, right } => {
+                let val = self.eval_expr(right)?;
+                match (op, val) {
+                    (UnaryOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),
+                    (UnaryOp::Not, v) => Err(format!("Оператор 'не' требует Лог, получено {}", v)),
                 }
             }
             Expr::Call { name, args, intrinsic } => {
+                let mut evaluated_args = Vec::new();
+                for arg in args {
+                    evaluated_args.push(self.eval_expr(arg)?);
+                }
+
                 if *intrinsic {
-                    self.call_intrinsic(name, args)
+                    self.call_intrinsic(name, evaluated_args)
                 } else {
-                    panic!("Пользовательские функции пока не реализованы");
+                    Err(format!("Пользовательские функции пока не реализованы: {}", name))
                 }
             }
         }
     }
 
-    fn eval_binary_values(&self, l: Value, r: Value, op: &BinOp) -> Value {
-        match (l, r, op) {
-            (Value::Int(a), Value::Int(b), BinOp::Plus) => Value::Int(a + b),
-            (Value::Int(a), Value::Int(b), BinOp::Sub) => Value::Int(a - b),
-            (Value::Int(a), Value::Int(b), BinOp::Mult) => Value::Int(a * b),
-            (Value::Int(a), Value::Int(b), BinOp::Div) => {
-                if b == 0 { panic!("Деление на ноль"); }
-                Value::Int(a / b)
-            }
-            (Value::Int(a), Value::Int(b), BinOp::Mod) => Value::Int(a % b),
-            (Value::Int(a), Value::Int(b), BinOp::Equal) => Value::Bool(a == b),
-            (Value::Int(a), Value::Int(b), BinOp::Less) => Value::Bool(a < b),
-            (Value::Int(a), Value::Int(b), BinOp::Greater) => Value::Bool(a > b),
+    fn apply_binary_op(&self, left: Value, right: Value, op: BinOp) -> RuntimeResult<Value> {
+        match (left, right, op) {
+            (Value::Int(l), Value::Int(r), BinOp::Plus) => Ok(Value::Int(l + r)),
+            (Value::Int(l), Value::Int(r), BinOp::Sub) => Ok(Value::Int(l - r)),
+            (Value::Int(l), Value::Int(r), BinOp::Mult) => Ok(Value::Int(l * r)),
+            (Value::Int(l), Value::Int(r), BinOp::Div) => {
+                if r == 0 {
+                    return Err("Деление на ноль!".to_string());
+                }
+                Ok(Value::Int(l / r))
+            },
+            (Value::Int(l), Value::Int(r), BinOp::Mod) => {
+                if r == 0 {
+                    return Err("Деление на ноль (остаток)!".to_string());
+                }
+                Ok(Value::Int(l % r))
+            },
             
-            (Value::String(a), Value::String(b), BinOp::Plus) => Value::String(a + &b), 
-            (Value::String(a), Value::String(b), BinOp::Equal) => Value::Bool(a == b),
-            
-            (Value::Bool(a), Value::Bool(b), BinOp::And) => Value::Bool(a && b),
-            (Value::Bool(a), Value::Bool(b), BinOp::Or) => Value::Bool(a || b),
-            (Value::Bool(a), Value::Bool(b), BinOp::Equal) => Value::Bool(a == b),
+            (Value::Int(l), Value::Int(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
+            (Value::Int(l), Value::Int(r), BinOp::Less) => Ok(Value::Bool(l < r)),
+            (Value::Int(l), Value::Int(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::Int(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
 
-            (l, r, op) => panic!("Недопустимая операция {:?} между {:?} и {:?}", op, l, r),
+            (Value::Bool(l), Value::Bool(r), BinOp::And) => Ok(Value::Bool(l && r)),
+            (Value::Bool(l), Value::Bool(r), BinOp::Or) => Ok(Value::Bool(l || r)),
+            (Value::Bool(l), Value::Bool(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::Bool(l), Value::Bool(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+
+            (Value::String(l), Value::String(r), BinOp::Plus) => Ok(Value::String(format!("{}{}", l, r))),
+            (Value::String(l), Value::String(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::String(l), Value::String(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+
+            (l, r, op) => Err(format!(
+                "Невозможно выполнить операцию '{:?}' над типами {} и {}", 
+                op, l, r
+            )),
         }
     }
 
-    fn is_truthy(&mut self, expr: &Expr) -> bool {
-        match self.eval_expr(expr) {
-            Value::Bool(b) => b,
-            _ => panic!("Условие должно быть логическим (Истина/Ложь)"),
-        }
-    }
-
-    fn get_int(&self, val: Value) -> i64 {
+    fn is_truthy(&self, val: &Value) -> RuntimeResult<bool> {
         match val {
-            Value::Int(i) => i,
-            _ => panic!("Ожидалось число, получено {}", val),
+            Value::Bool(b) => Ok(*b),
+            _ => Err(format!("Ожидалось логическое значение (Истина/Ложь), получено {}", val)),
         }
     }
 
-    fn call_intrinsic(&mut self, name: &str, args: &[Expr]) -> Value {
-        match name {
-            "написать" => {
-                let vals: Vec<Value> = args.iter().map(|e| self.eval_expr(e)).collect();
-                self.print_values(vals);
-                Value::Int(0)
-            }
-            "считать" => {
-                let prompt = if !args.is_empty() {
-                    match self.eval_expr(&args[0]) {
-                        Value::String(s) => s,
-                        _ => String::new(),
-                    }
-                } else {
-                    String::new()
-                };
-                print!("{}", prompt);
-                io::stdout().flush().unwrap();
-                
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).unwrap();
-                let input = input.trim();
-                
-                if let Ok(i) = input.parse::<i64>() {
-                    Value::Int(i)
-                } else {
-                    Value::String(input.to_string())
-                }
-            }
-            _ => panic!("Неизвестная функция: {}", name),
+    fn call_intrinsic(&self, name: &str, args: Vec<Value>) -> RuntimeResult<Value> {
+    match name {
+        "написать" => {
+            self.print_values(args);
+            Ok(Value::Int(0))
         }
+        "считать" => {
+            if let Some(prompt) = args.first() {
+                print!("{}", prompt);
+            } else {
+                print!("> "); 
+            }
+            
+            let _ = io::stdout().flush();
+            
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
+            let input = input.trim();
+            
+            if let Ok(i) = input.parse::<i64>() {
+                Ok(Value::Int(i))
+            } else {
+                Ok(Value::String(input.to_string()))
+            }
+        }
+        _ => Err(format!("Неизвестная встроенная функция: {}", name)),
     }
+}
 
     fn print_values(&self, values: Vec<Value>) {
         if values.is_empty() {
             println!();
             return;
         }
+        
         let mut iter = values.iter();
         if let Some(first) = iter.next() {
             if let Value::String(fmt) = first {
-                let mut res = String::new();
-                let mut chars = fmt.chars().peekable();
-                while let Some(c) = chars.next() {
-                    if c == '{' && chars.peek() == Some(&'}') {
-                        chars.next();
-                        if let Some(arg) = iter.next() {
-                            res.push_str(&format!("{}", arg));
-                        } else {
-                            res.push_str("{}");
-                        }
-                    } else {
-                        res.push(c);
+                if fmt.contains("{}") {
+                    let mut res = fmt.clone();
+                    for v in iter {
+                        res = res.replacen("{}", &v.to_string(), 1);
                     }
+                    println!("{}", res);
+                    return;
                 }
-                println!("{}", res);
-            } else {
-                print!("{}", first);
-                for v in iter {
-                    print!(" {}", v);
-                }
-                println!();
             }
+            
+            print!("{}", first);
+            for v in iter {
+                print!(" {}", v);
+            }
+            println!();
         }
     }
 }

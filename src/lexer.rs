@@ -52,6 +52,7 @@ pub enum Token {
     And,
     Or,  
     Not,
+    NotEqual,
 
     LParen,
     RParen,
@@ -66,7 +67,7 @@ pub enum Token {
     Всех,
     В,
     Диапазоне,
-    DotDot, // ..   
+    DotDot,  
 }
 
 pub struct Lexer<'a> {
@@ -275,8 +276,8 @@ impl<'a> Lexer<'a> {
             "аргументы" => Token::Arguments,
             "Начало" => Token::BeginFunc,
             "Конец" => Token::EndFunc,
-            "начало" => Token::Begin,
-            "конец" => Token::End,
+            "нч" => Token::Begin,
+            "кц" => Token::End,
             "пусть" => Token::Let,
             "если" => Token::If,
             "то" => Token::Then,
@@ -296,13 +297,23 @@ impl<'a> Lexer<'a> {
             "Лог" => Token::TypeBool,
             "Строка" => Token::TypeString,
 
-            "не" => Token::Not,
+            "не" => {
+                if let Some(&'=') = self.input.peek() {
+                    self.input.next(); 
+                    Token::NotEqual
+                } else {
+                    Token::Not 
+                }
+            }
             "Истина" => Token::Bool(true),
             "Ложь" => Token::Bool(false),
 
             "массив" => Token::Array,
                 
             //syntax sugar
+            "и" => Token::And,
+            "или" => Token::Or,
+            
             "для" => Token::ForAll,
             "всех" => Token::Всех,
             "в" => Token::В,

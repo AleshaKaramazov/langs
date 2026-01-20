@@ -315,9 +315,10 @@ impl<'a> Parser<'a> {
 
     fn parse_comparison(&mut self) -> Expr {
         let mut left = self.parse_arithmetic();
-        while matches!(self.current, Token::Equal | Token::Less | Token::Greater) {
+        while matches!(self.current, Token::Equal | Token::NotEqual | Token::Less | Token::Greater) {
             let op = match self.current {
                 Token::Equal => BinOp::Equal,
+                Token::NotEqual => BinOp::NotEqual,
                 Token::Less => BinOp::Less,
                 Token::Greater => BinOp::Greater,
                 _ => unreachable!(),

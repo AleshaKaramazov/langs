@@ -1,7 +1,5 @@
-// visualizer.rs
-use crate::lexer::Lexer;
-use crate::parser::Parser;
 use crate::ast::*;
+use std::fmt::Write;
 
 pub struct Visualizer {
     dot: String,
@@ -10,10 +8,18 @@ pub struct Visualizer {
 
 impl Visualizer {
     pub fn new() -> Self {
-        Self {
-            dot: String::from("digraph G {\n  node [fontname=\"Arial\", shape=box, style=filled, fillcolor=\"#f9f9f9\"];\n  edge [fontname=\"Arial\"];\n  rankdir=TB;\n"),
-            node_count: 0,
-        }
+        let mut dot = String::new();
+        writeln!(dot, "digraph G {{").unwrap();
+        writeln!(dot, "  fontname=\"Inter,Segoe UI,Arial\";").unwrap();
+        writeln!(dot, "  nodesep=0.6; ranksep=0.5;").unwrap();
+        writeln!(dot, "  rankdir=TB;").unwrap();
+        writeln!(dot, "  splines=ortho;").unwrap(); 
+        writeln!(dot, "  forcelabels=true;").unwrap(); 
+
+        writeln!(dot, "  node [fontname=\"Inter,Segoe UI,Arial\", fontsize=12, shape=box, style=\"rounded,filled\", fillcolor=\"#f8f9fa\", color=\"#2d3436\", penwidth=1.2, margin=\"0.2,0.1\"];").unwrap();
+        writeln!(dot, "  edge [fontname=\"Inter,Segoe UI,Arial\", fontsize=10, color=\"#636e72\", penwidth=1.0, arrowhead=vee, arrowsize=0.7];").unwrap();
+        
+        Self { dot, node_count: 0 }
     }
 
     fn next_id(&mut self) -> String {
@@ -24,152 +30,182 @@ impl Visualizer {
     fn fmt_expr(&self, expr: &Expr) -> String {
         match expr {
             Expr::Int(i) => i.to_string(),
-            Expr::Bool(b) => (if *b { "Истина" } else { "Ложь" }).to_string(),
+            Expr::Bool(b) => (if *b { "истина" } else { "ложь" }).to_string(),
             Expr::String(s) => format!("\\\"{}\\\"", s),
             Expr::Var(v) => v.clone(),
-            Expr::Unary { op: UnaryOp::Not, right } => format!("не {}", self.fmt_expr(right)),
+            Expr::Array(elements) => {
+                let parts: Vec<String> = elements.iter().map(|e| self.fmt_expr(e)).collect();
+                format!("[{}]", parts.join(", "))
+            }
+            Expr::Index { target, index } => {
+                format!("{}[{}]", self.fmt_expr(target), self.fmt_expr(index))
+            }
+            Expr::Unary { op, right } => {
+                let s = match op { UnaryOp::Not => "¬" };
+                format!("{} {}", s, self.fmt_expr(right))
+            }
             Expr::Binary { left, op, right } => {
                 let op_str = match op {
-                    BinOp::Plus => "+", BinOp::Sub => "-", BinOp::Mult => "*",
-                    BinOp::Div => "/", BinOp::Mod => "%", BinOp::Equal => "==",
+                    BinOp::Plus => "+", BinOp::Sub => "-", BinOp::Mult => "×",
+                    BinOp::Div => "/", BinOp::Mod => "%", BinOp::Equal => "=",
                     BinOp::Less => "<", BinOp::Greater => ">",
-                    BinOp::Or => "или", BinOp::And => "и",
+                    BinOp::Or => "или", BinOp::And => "и", BinOp::NotEqual => "≠",
                 };
-                format!("{} {} {}", self.fmt_expr(left), op_str, self.fmt_expr(right))
+                format!("({} {} {})", self.fmt_expr(left), op_str, self.fmt_expr(right))
             }
             Expr::Call { name, args, intrinsic } => {
                 let formatted_args: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
-                let suffix = if *intrinsic { "!" } else { "" };
-                format!("{}{}({})", name, suffix, formatted_args.join(", "))
-            } 
-            Expr::Array(v) => {
-                format!("{:?}", v) 
-            }
-            Expr::Index { target, index } => {
-                format!("{:?} -> index {:?}", target, index)
+                format!("{}{}({})", name, if *intrinsic { "!" } else { "" }, formatted_args.join(", "))
             }
         }
     }
 
-    pub fn translate(mut self, text: String) -> String {
-        let lexer = Lexer::new(&text);
-        let mut parser = Parser::new(lexer);
-        let alg = parser.parse_algorithm();
-
+    pub fn translate(mut self, alg: Algorithm) -> String {
         let start_node = self.next_id();
-        self.dot.push_str(&format!("  {} [label=\"Начало: {}\", shape=ellipse, fillcolor=\"#e1f5fe\"];\n", start_node, alg.name));
+        writeln!(self.dot, "  {} [label=\"НАЧАЛО: {}\", shape=ellipse, fillcolor=\"#e1f5fe\", color=\"#01579b\"];", start_node, alg.name).unwrap();
 
-        let last_node = self.translate_block(&alg.body, start_node);
-
+        let (body_entry, body_exit) = self.translate_block(&alg.body);
+        
         let end_node = self.next_id();
-        self.dot.push_str(&format!("  {} [label=\"Конец\", shape=ellipse, fillcolor=\"#e1f5fe\"];\n", end_node));
-        self.dot.push_str(&format!("  {} -> {};\n", last_node, end_node));
+        writeln!(self.dot, "  {} [label=\"КОНЕЦ\", shape=ellipse, fillcolor=\"#e1f5fe\", color=\"#01579b\"];", end_node).unwrap();
+
+        if let Some(entry) = body_entry {
+            writeln!(self.dot, "  {} -> {};", start_node, entry).unwrap();
+            writeln!(self.dot, "  {} -> {};", body_exit.unwrap(), end_node).unwrap();
+        } else {
+            writeln!(self.dot, "  {} -> {};", start_node, end_node).unwrap();
+        }
 
         self.dot.push_str("}\n");
         self.dot
     }
 
-    // Обрабатывает блок и возвращает ID последнего узла в этом блоке
-    fn translate_block(&mut self, stmts: &[Stmt], mut prev_node: String) -> String {
+    fn translate_block(&mut self, stmts: &[Stmt]) -> (Option<String>, Option<String>) {
+        if stmts.is_empty() { return (None, None); }
+        let mut first_id = None;
+        let mut prev_exit = None;
+
         for stmt in stmts {
-            prev_node = self.translate_stmt(stmt, prev_node, None);
+            let (stmt_entry, stmt_exit) = self.translate_stmt(stmt);
+            if let Some(prev) = prev_exit {
+                writeln!(self.dot, "  {} -> {};", prev, stmt_entry).unwrap();
+            } else {
+                first_id = Some(stmt_entry.clone());
+            }
+            prev_exit = Some(stmt_exit);
         }
-        prev_node
+        (first_id, prev_exit)
     }
 
-    fn translate_stmt(&mut self, stmt: &Stmt, prev_node: String, edge_label: Option<&str>) -> String {
-        let current = self.next_id();
-        let label_attr = if let Some(l) = edge_label { format!(" [label=\"{}\"]", l) } else { String::new() };
+    fn translate_stmt(&mut self, stmt: &Stmt) -> (String, String) {
+        let current_id = self.next_id();
 
         match stmt {
             Stmt::Let { name, expr, .. } => {
-                self.dot.push_str(&format!("  {} [label=\"пусть {} = {}\"];\n", current, name, self.fmt_expr(expr)));
-                self.dot.push_str(&format!("  {} -> {}{};\n", prev_node, current, label_attr));
-                current
+                writeln!(self.dot, "  {} [label=\"пусть {} = {}\"];", current_id, name, self.fmt_expr(expr)).unwrap();
+                (current_id.clone(), current_id)
             }
-            Stmt::Assign { name, expr } => {
-                self.dot.push_str(&format!("  {} [label=\"{} = {}\"];\n", current, name, self.fmt_expr(expr)));
-                self.dot.push_str(&format!("  {} -> {}{};\n", prev_node, current, label_attr));
-                current
+            Stmt::Assign { name, expr } | Stmt::AssignAdd { name, expr } | 
+            Stmt::AssignSub { name, expr } | Stmt::AssignMult { name, expr } | 
+            Stmt::AssignDiv { name, expr } => {
+                let op = match stmt {
+                    Stmt::AssignAdd {..} => "+=", Stmt::AssignSub {..} => "-=",
+                    Stmt::AssignMult {..} => "*=", Stmt::AssignDiv {..} => "/=",
+                    _ => "=",
+                };
+                writeln!(self.dot, "  {} [label=\"{} {} {}\"];", current_id, name, op, self.fmt_expr(expr)).unwrap();
+                (current_id.clone(), current_id)
             }
             Stmt::Expr(expr) => {
-                let expr_str = self.fmt_expr(expr);
-                // Подсвечиваем ввод/вывод зеленым
-                let color = if expr_str.contains('!') { ", fillcolor=\"#c8e6c9\"" } else { "" };
-                self.dot.push_str(&format!("  {} [label=\"{}\"{}];\n", current, expr_str, color));
-                self.dot.push_str(&format!("  {} -> {}{};\n", prev_node, current, label_attr));
-                current
+                let is_io = if let Expr::Call { intrinsic, .. } = expr { *intrinsic } else { false };
+                let label = self.fmt_expr(expr);
+                if is_io {
+                    writeln!(self.dot, "  {} [label=\"{}\", shape=parallelogram, fillcolor=\"#e8f5e9\", color=\"#2e7d32\"];", current_id, label).unwrap();
+                } else {
+                    writeln!(self.dot, "  {} [label=\"{}\"];", current_id, label).unwrap();
+                }
+                (current_id.clone(), current_id)
             }
             Stmt::If { cond, then_body, else_if, else_body } => {
-                // Рисуем ромб условия
-                self.dot.push_str(&format!("  {} [label=\"{}?\", shape=diamond, fillcolor=\"#fff9c4\"];\n", current, self.fmt_expr(cond)));
-                self.dot.push_str(&format!("  {} -> {}{};\n", prev_node, current, label_attr));
+                writeln!(self.dot, "  {} [label=\"{}?\", shape=diamond, fillcolor=\"#fff9c4\", color=\"#fbc02d\"];", current_id, self.fmt_expr(cond)).unwrap();
+                let exit_id = self.next_id();
+                writeln!(self.dot, "  {} [label=\"\", shape=circle, width=0.1, height=0.1, fillcolor=\"#2d3436\"];", exit_id).unwrap();
 
-                let exit_if = self.next_id();
-                self.dot.push_str(&format!("  {} [label=\"\", shape=point];\n", exit_if));
-
-                // Ветка "ДА"
-                if then_body.is_empty() {
-                    self.dot.push_str(&format!("  {} -> {} [label=\"да\"];\n", current, exit_if));
+                let (then_entry, then_exit) = self.translate_block(then_body);
+                if let Some(entry) = then_entry {
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", current_id, entry).unwrap();
+                    writeln!(self.dot, "  {} -> {};", then_exit.unwrap(), exit_id).unwrap();
                 } else {
-                    let last_in_then = self.translate_stmt(&then_body[0], current.clone(), Some("да"));
-                    let final_then = self.translate_block(&then_body[1..], last_in_then);
-                    self.dot.push_str(&format!("  {} -> {};\n", final_then, exit_if));
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", current_id, exit_id).unwrap();
                 }
 
-                let mut last_cond_node = current;
-
-                // Ветки "ИНАЧЕ ЕСЛИ"
+                let mut last_cond_id = current_id.clone();
                 for (elif_cond, elif_body) in else_if {
                     let elif_id = self.next_id();
-                    self.dot.push_str(&format!("  {} [label=\"{}?\", shape=diamond, fillcolor=\"#fff9c4\"];\n", elif_id, self.fmt_expr(elif_cond)));
-                    self.dot.push_str(&format!("  {} -> {} [label=\"нет\"];\n", last_cond_node, elif_id));
-
-                    if elif_body.is_empty() {
-                        self.dot.push_str(&format!("  {} -> {} [label=\"да\"];\n", elif_id, exit_if));
+                    writeln!(self.dot, "  {} [label=\"{}?\", shape=diamond, fillcolor=\"#fff9c4\"];", elif_id, self.fmt_expr(elif_cond)).unwrap();
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", last_cond_id, elif_id).unwrap();
+                    
+                    let (e_entry, e_exit) = self.translate_block(elif_body);
+                    if let Some(entry) = e_entry {
+                        writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", elif_id, entry).unwrap();
+                        writeln!(self.dot, "  {} -> {};", e_exit.unwrap(), exit_id).unwrap();
                     } else {
-                        let last_in_elif = self.translate_stmt(&elif_body[0], elif_id.clone(), Some("да"));
-                        let final_elif = self.translate_block(&elif_body[1..], last_in_elif);
-                        self.dot.push_str(&format!("  {} -> {};\n", final_elif, exit_if));
+                        writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", elif_id, exit_id).unwrap();
                     }
-                    last_cond_node = elif_id;
+                    last_cond_id = elif_id;
                 }
 
-                // Ветка "ИНАЧЕ"
                 if let Some(eb) = else_body {
-                    if eb.is_empty() {
-                        self.dot.push_str(&format!("  {} -> {} [label=\"нет\"];\n", last_cond_node, exit_if));
+                    let (else_entry, else_exit) = self.translate_block(eb);
+                    if let Some(entry) = else_entry {
+                        writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", last_cond_id, entry).unwrap();
+                        writeln!(self.dot, "  {} -> {};", else_exit.unwrap(), exit_id).unwrap();
                     } else {
-                        let last_in_else = self.translate_stmt(&eb[0], last_cond_node, Some("нет"));
-                        let final_else = self.translate_block(&eb[1..], last_in_else);
-                        self.dot.push_str(&format!("  {} -> {};\n", final_else, exit_if));
+                        writeln!(self.dot, "  {} -> {};", last_cond_id, exit_id).unwrap();
                     }
                 } else {
-                    self.dot.push_str(&format!("  {} -> {} [label=\"нет\"];\n", last_cond_node, exit_if));
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", last_cond_id, exit_id).unwrap();
                 }
-
-                exit_if
+                (current_id, exit_id)
             }
             Stmt::While { cond, body } => {
-                self.dot.push_str(&format!("  {} [label=\"пока {}\\n?\", shape=diamond, fillcolor=\"#fff9c4\"];\n", current, self.fmt_expr(cond)));
-                self.dot.push_str(&format!("  {} -> {}{};\n", prev_node, current, label_attr));
+                writeln!(self.dot, "  {} [label=\"{}?\", shape=diamond, fillcolor=\"#ffe0b2\", color=\"#e65100\"];", current_id, self.fmt_expr(cond)).unwrap();
+                let exit_id = self.next_id();
+                writeln!(self.dot, "  {} [label=\"\", shape=circle, width=0.1, height=0.1];", exit_id).unwrap();
 
-                if !body.is_empty() {
-                    let last_in_body = self.translate_stmt(&body[0], current.clone(), Some("да"));
-                    let final_body = self.translate_block(&body[1..], last_in_body);
-                    self.dot.push_str(&format!("  {} -> {} [constraint=false];\n", final_body, current));
+                let (b_entry, b_exit) = self.translate_block(body);
+                if let Some(entry) = b_entry {
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", current_id, entry).unwrap();
+                    writeln!(self.dot, "  {} -> {} [constraint=false, style=dashed, xlabel=\"loop\"];", b_exit.unwrap(), current_id).unwrap();
+                } else {
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", current_id, current_id).unwrap();
                 }
-
-                let exit_node = self.next_id();
-                self.dot.push_str(&format!("  {} [label=\"\", shape=point];\n", exit_node));
-                self.dot.push_str(&format!("  {} -> {} [label=\"нет\"];\n", current, exit_node));
-                exit_node
+                writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", current_id, exit_id).unwrap();
+                (current_id, exit_id)
             }
-            _ => {
-                // Для остальных (For, AssignAdd и т.д.) логика аналогична Let/Expr
-                self.dot.push_str(&format!("  {} [label=\"неподдерживаемый узел\"];\n", current));
-                self.dot.push_str(&format!("  {} -> {}{};\n", prev_node, current, label_attr));
-                current
+            Stmt::For { var, start, end, body } => {
+                let init_id = self.next_id();
+                writeln!(self.dot, "  {} [label=\"{} = {}\"];", init_id, var, self.fmt_expr(start)).unwrap();
+                let cond_id = self.next_id();
+                writeln!(self.dot, "  {} [label=\"{} < {}?\", shape=diamond, fillcolor=\"#ffe0b2\"];", cond_id, var, self.fmt_expr(end)).unwrap();
+                writeln!(self.dot, "  {} -> {};", init_id, cond_id).unwrap();
+
+                let (b_entry, b_exit) = self.translate_block(body);
+                let inc_id = self.next_id();
+                writeln!(self.dot, "  {} [label=\"{}++\"];", inc_id, var).unwrap();
+
+                if let Some(entry) = b_entry {
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", cond_id, entry).unwrap();
+                    writeln!(self.dot, "  {} -> {};", b_exit.unwrap(), inc_id).unwrap();
+                } else {
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"да\"];", cond_id, inc_id).unwrap();
+                }
+                writeln!(self.dot, "  {} -> {} [constraint=false, style=dashed];", inc_id, cond_id).unwrap();
+
+                let exit_id = self.next_id();
+                writeln!(self.dot, "  {} [label=\"\", shape=circle, width=0.1];", exit_id).unwrap();
+                writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", cond_id, exit_id).unwrap();
+                (init_id, exit_id)
             }
         }
     }

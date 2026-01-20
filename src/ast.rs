@@ -1,10 +1,11 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
-    Nat,
     Int,
     Bool,
     String,
-    Infer,
+    Array(Box<Type>),
+    Void, 
+    Infer, 
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +86,7 @@ pub enum Expr {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinOp {
     Equal,
+    NotEqual,
     Plus,
     Less,
     Greater,
