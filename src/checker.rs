@@ -258,16 +258,23 @@ impl TypeChecker {
                 let target_ty = self.check_expr(target)?;
                 
                 match (target_ty, method.as_str()) {
-                    (Type::String, "длинна") => {
-                        if !args.is_empty() { return Err("Метод 'длинна' не принимает аргументов".into()); }
+                    (Type::String, "Длинна") => {
+                        if !args.is_empty() { return Err("Метод 'Длинна' не принимает аргументов".into()); }
                         Ok(Type::Int)
                     }
-                    (Type::Array(_), "длинна") => {
+                    (Type::Array(_), "Длинна") => {
                         Ok(Type::Int)
-                    }
-                    (Type::Array(inner_ty), "добавить") => {
+                    } 
+                    (Type::Array(_), "Содержит") | (Type::String, "Содержит") => {
                         if args.len() != 1 {
-                            return Err("Метод 'добавить' ожидает 1 аргумент".into());
+                            return Err("Метод 'Содержит' ожидает 1 аргумент".into());
+                        }
+                        Ok(Type::Bool)
+
+                    }
+                    (Type::Array(inner_ty), "Добавить") => {
+                        if args.len() != 1 {
+                            return Err("Метод 'Добавить' ожидает 1 аргумент".into());
                         }
                         let arg_ty = self.check_expr(&args[0])?;
                         if arg_ty != *inner_ty {

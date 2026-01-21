@@ -177,7 +177,7 @@ impl Interpreter {
                 Ok(self.env.get(name)) 
             },
             Expr::MethodCall { target, method, args } => {
-                if method == "добавить" {
+                if method == "Добавить" {
                     if let Expr::Var(name) = &**target {
                         let item = self.eval_expr(&args[0])?;
                         let val = self.env.get(name);
@@ -187,15 +187,31 @@ impl Interpreter {
                             self.env.assign(name, Value::Array(arr));
                             return Ok(Value::Void);
                         } else {
-                            return Err(format!("Метод 'добавить' вызван не у массива"));
+                            return Err(format!("Метод 'Добавить' вызван не у массива"));
                         }
                     }
+                } else if method == "Содержит" {
+                    if let Expr::Var(name) = &**target {
+                        let item = self.eval_expr(&args[0])?;
+                        let val = self.env.get(name);
+                        
+                        if let Value::Array(arr) = val {
+                            return Ok(Value::Bool(arr.contains(&item)));
+                        } else if let Value::String(str) = val &&
+                            let Value::String(sub_str) = item {
+                            return Ok(Value::Bool(str.contains(&sub_str)))
+                        } else {
+                            return Err(format!("Метод 'Добавить' вызван не у массива"));
+                        }
+                    }
+
                 }
+        
 
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
-                    (Value::String(s), "длинна") => Ok(Value::Int(s.chars().count() as i64)),
-                    (Value::Array(arr), "длинна") => Ok(Value::Int(arr.len() as i64)),
+                    (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
+                    (Value::Array(arr), "Длинна") => Ok(Value::Int(arr.len() as i64)),
                     _ => Err(format!("Метод {} не реализован", method))
                 }
             }
