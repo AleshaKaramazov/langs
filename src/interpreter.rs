@@ -37,7 +37,7 @@ impl Interpreter {
             self.env.declare(name.clone(), val);
         }
 
-        let mut result = Value::Int(0); // Дефолт (Void)
+        let mut result = Value::Void;
         
         if let Some(ret_val) = self.exec_block(&alg.body)? {
             result = ret_val;
@@ -64,8 +64,11 @@ impl Interpreter {
 
     fn exec_stmt(&mut self, stmt: &Stmt) -> RuntimeResult<Option<Value>> {
         match stmt {
-            Stmt::Return(expr) => {
-                let val = self.eval_expr(expr)?;
+            Stmt::Return(maybe_expr) => {
+                let val = match maybe_expr {
+                    Some(expr) => self.eval_expr(expr)?,
+                    None => Value::Void, 
+                };
                 Ok(Some(val)) 
             }
             Stmt::Let { name, expr, .. } => {
@@ -87,7 +90,6 @@ impl Interpreter {
             Stmt::If { cond, then_body, else_body, .. } => {
                 let val = self.eval_expr(cond)?;
                 if let Value::Bool(true) = val {
-                    // Если внутри if был return, пробрасываем его наверх
                     if let Some(r) = self.exec_block(then_body)? {
                         return Ok(Some(r));
                     }

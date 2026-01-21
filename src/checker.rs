@@ -99,23 +99,32 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_block(&mut self, stmts: &[Stmt]) -> Result<(), String> {
+    fn check_block(&mut self, stmts: &[Stmt], expected_ret: &Type) -> Result<(), String> {
         self.env.enter_scope();
         for stmt in stmts {
-            self.check_stmt(stmt, &Type::Void)?;
+            self.check_stmt(stmt, expected_ret)?;
         }
         self.env.exit_scope();
-        Ok(())
+        Ok(())    
     }
 
     fn check_stmt(&mut self, stmt: &Stmt, expected_ret: &Type) -> Result<(), String> {
         match stmt {
-            Stmt::Return(expr) => {
-                let actual = self.check_expr(expr)?;
-                if &actual != expected_ret {
-                    return Err(format!("Функция должна возвращать {:?}, но возвращает {:?}", expected_ret, actual));
-                }
-            },
+            Stmt::Return(maybe_expr) => {
+                        match maybe_expr {
+                            Some(expr) => {
+                                let actual = self.check_expr(expr)?;
+                                if &actual != expected_ret {
+                                    return Err(format!("Функция должна возвращать {:?}, но возвращает {:?}", expected_ret, actual));
+                                }
+                            }
+                            None => {
+                                if expected_ret != &Type::Void {
+                                    return Err(format!("Ожидалось возвращаемое значение типа {:?}", expected_ret));
+                                }
+                            }
+                        }
+                    },
             Stmt::Let { name, ty, expr } => {
                 let expr_ty = self.check_expr(expr)?;
                 
@@ -136,7 +145,7 @@ impl TypeChecker {
                 if let Type::Array(inner_ty) = coll_ty {
                     self.env.enter_scope();
                     self.env.declare(var.clone(), *inner_ty)?; 
-                    self.check_block(body)?;
+                    self.check_block(body, expected_ret)?;
                     self.env.exit_scope();
                 } else {
                     return Err(format!("Нельзя итерироваться по типу {:?}", coll_ty));
@@ -162,21 +171,21 @@ impl TypeChecker {
                 if cond_ty != Type::Bool {
                     return Err(format!("Условие 'если' должно быть Лог (Bool), получено {:?}", cond_ty));
                 }
-                self.check_block(then_body)?;
+                self.check_block(then_body, expected_ret)?;
                 
                 for (e_cond, e_body) in else_if {
                     let t = self.check_expr(e_cond)?;
                     if t != Type::Bool { return Err("Условие 'иначе если' должно быть Лог".into()); }
-                    self.check_block(e_body)?;
+                    self.check_block(e_body, expected_ret)?;
                 }
                 if let Some(body) = else_body {
-                    self.check_block(body)?;
+                    self.check_block(body, expected_ret)?;
                 }
             }
             Stmt::While { cond, body } => {
                 let cond_ty = self.check_expr(cond)?;
                 if cond_ty != Type::Bool { return Err("Условие 'пока' должно быть Лог".into()); }
-                self.check_block(body)?;
+                self.check_block(body, expected_ret)?;
             }
             Stmt::For { var, start, end, body } => {
                 let start_ty = self.check_expr(start)?;
@@ -187,7 +196,7 @@ impl TypeChecker {
                 
                 self.env.enter_scope();
                 self.env.declare(var.clone(), Type::Int)?; 
-                self.check_block(body)?; 
+                self.check_block(body, expected_ret)?; 
                 self.env.exit_scope();
             }
             Stmt::Expr(expr) => {

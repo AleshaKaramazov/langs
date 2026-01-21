@@ -90,9 +90,14 @@ impl<'a> Parser<'a> {
         match self.current {
             Token::Return => {
                 self.advance();
-                let expr = self.parse_expr();
-                self.expect(Token::Semicolon);
-                Stmt::Return(expr)
+                if self.current == Token::Semicolon {
+                    self.advance();
+                    Stmt::Return(None)
+                } else {
+                    let expr = self.parse_expr();
+                    self.expect(Token::Semicolon);
+                    Stmt::Return(Some(expr))
+                }
             }
             Token::Let => self.parse_let(),
             Token::If => self.parse_if(),

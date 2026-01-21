@@ -296,14 +296,14 @@ impl<'a> Lexer<'a> {
 
             "выполнить" => Token::Do,
 
-            "вернуть" => Token::Return,
+            "вернуть" | "конец" => Token::Return,
 
             "Нат" => Token::TypeNat,
             "Цел" => Token::TypeInt,
             "Лог" => Token::TypeBool,
             "Строка" => Token::TypeString,
 
-            "не" => {
+            "не" | "Не" => {
                 if let Some(&'=') = self.input.peek() {
                     self.input.next(); 
                     Token::NotEqual
@@ -315,15 +315,15 @@ impl<'a> Lexer<'a> {
             "Ложь" => Token::Bool(false),
 
             "массив" => Token::Array,
-            "массиве" => Token::Массиве,
                 
             //syntax sugar
-            "и" => Token::And,
-            "или" => Token::Or,
+            "и" | "И" => Token::And,
+            "или" | "ИЛИ" => Token::Or,
             
             "для" => Token::ForAll,
             "всех" => Token::Всех,
             "в" => Token::В,
+            "массиве" => Token::Массиве,
             "диапазоне" => Token::Диапазоне,
             ".." => Token::DotDot,
 

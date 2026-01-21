@@ -24,7 +24,7 @@ pub struct Program {
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    Return(Expr),
+    Return(Option<Expr>),
     Let {
         name: String,
         ty: Type,
