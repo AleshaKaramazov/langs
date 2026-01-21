@@ -1,9 +1,14 @@
-// checker.rs
 use std::collections::HashMap;
 use crate::ast::*;
 
 pub struct TypeEnv {
     scopes: Vec<HashMap<String, Type>>,
+}
+
+#[derive(Clone, Debug)]
+struct FuncSignature {
+    args: Vec<Type>,
+    ret_type: Type,
 }
 
 impl TypeEnv {
@@ -50,11 +55,36 @@ impl TypeEnv {
 
 pub struct TypeChecker {
     env: TypeEnv,
+    functions: HashMap<String, FuncSignature>,
 }
 
 impl TypeChecker {
     pub fn new() -> Self {
-        Self { env: TypeEnv::new() }
+        Self { 
+            env: TypeEnv::new(),
+            functions: HashMap::new()
+        }
+    }
+
+    pub fn check_program(&mut self, prog: &Program) -> Result<(), String> {
+        for alg in &prog.algorithms {
+            let arg_types: Vec<Type> = 
+                alg.args.iter().map(|(_, t)| t.clone()).collect();
+            
+            if self.functions.contains_key(&alg.name) {
+                return Err(format!("Алгоритм '{}' уже объявлен", alg.name));
+            }
+            
+            self.functions.insert(alg.name.clone(), FuncSignature {
+                args: arg_types,
+                ret_type: alg.ret_type.clone(),
+            });
+        }
+
+        for alg in &prog.algorithms {
+            self.check_algorithm(alg)?;
+        }
+        Ok(())
     }
 
     pub fn check_algorithm(&mut self, alg: &Algorithm) -> Result<(), String> {
@@ -62,7 +92,9 @@ impl TypeChecker {
         for (name, ty) in &alg.args {
             self.env.declare(name.clone(), ty.clone())?;
         }
-        self.check_block(&alg.body)?;
+        for stmt in &alg.body {
+            self.check_stmt(stmt, &alg.ret_type)?;
+        }
         self.env.exit_scope();
         Ok(())
     }
@@ -70,21 +102,27 @@ impl TypeChecker {
     fn check_block(&mut self, stmts: &[Stmt]) -> Result<(), String> {
         self.env.enter_scope();
         for stmt in stmts {
-            self.check_stmt(stmt)?;
+            self.check_stmt(stmt, &Type::Void)?;
         }
         self.env.exit_scope();
         Ok(())
     }
 
-    fn check_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
+    fn check_stmt(&mut self, stmt: &Stmt, expected_ret: &Type) -> Result<(), String> {
         match stmt {
+            Stmt::Return(expr) => {
+                let actual = self.check_expr(expr)?;
+                if &actual != expected_ret {
+                    return Err(format!("Функция должна возвращать {:?}, но возвращает {:?}", expected_ret, actual));
+                }
+            },
             Stmt::Let { name, ty, expr } => {
                 let expr_ty = self.check_expr(expr)?;
                 
                 let final_ty = if *ty == Type::Infer {
                     expr_ty.clone()
                 } else {
-                    if *ty != expr_ty {
+                    if expr_ty != Type::Unknown && *ty != expr_ty {
                         return Err(format!("Ошибка в 'пусть {}': ожидался тип {:?}, получен {:?}", name, ty, expr_ty));
                     }
                     ty.clone()
@@ -97,7 +135,6 @@ impl TypeChecker {
                 
                 if let Type::Array(inner_ty) = coll_ty {
                     self.env.enter_scope();
-                    // Переменная цикла получает тип элементов массива
                     self.env.declare(var.clone(), *inner_ty)?; 
                     self.check_block(body)?;
                     self.env.exit_scope();
@@ -233,11 +270,30 @@ impl TypeChecker {
                     for arg in args { self.check_expr(arg)?; }
                     return Ok(Type::Int); 
                 }
-                 if *intrinsic && name == "считать" {
-                    return Ok(Type::Int); 
+                if *intrinsic && name == "считать" {
+                    return Ok(Type::Unknown); 
                 }
-                Err("Функции пока не поддерживаются чекером".into())
-            }
+
+                let sig = match self.functions.get(name) {
+                    Some(s) => s.clone(),
+                    None => return Err(format!("Неизвестная функция: {}", name)),
+                };
+
+
+                if args.len() != sig.args.len() {
+                    return Err(format!("Функция {} ожидает {} аргументов, получено {}", name, sig.args.len(), args.len()));
+                }
+
+                for (i, arg_expr) in args.iter().enumerate() {
+                    let arg_ty = self.check_expr(arg_expr)?;
+                    
+                    if arg_ty != sig.args[i] {
+                            return Err(format!("Аргумент {} функции {} имеет неверный тип. Ожидалось {:?}, получено {:?}", i+1, name, sig.args[i], arg_ty));
+                    }
+                }
+                
+                Ok(sig.ret_type)
+            }        
         }
     }
 }

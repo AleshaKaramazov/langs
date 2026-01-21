@@ -33,6 +33,12 @@ impl<'a> Parser<'a> {
         };
         self.advance();
 
+        let mut ret_type = Type::Void;
+        if self.current == Token::Arrow {
+            self.advance();
+            ret_type = self.parse_type();
+        }
+
         let mut args = Vec::new();
         if self.current == Token::Arguments {
             self.advance();
@@ -58,9 +64,13 @@ impl<'a> Parser<'a> {
         }
 
         self.expect(Token::BeginFunc);
-        let body = self.parse_block(Token::EndFunc);
 
-        Algorithm { name, args, body }
+        let mut body = Vec::new();
+        while self.current != Token::EndFunc && self.current != Token::Eof {
+            body.push(self.parse_stmt());
+        }
+        self.expect(Token::EndFunc);
+        Algorithm { name, args, ret_type, body }
     }
 
     fn parse_block(&mut self, end_tok: Token) -> Vec<Stmt> {
@@ -78,6 +88,12 @@ impl<'a> Parser<'a> {
 
     fn parse_stmt(&mut self) -> Stmt {
         match self.current {
+            Token::Return => {
+                self.advance();
+                let expr = self.parse_expr();
+                self.expect(Token::Semicolon);
+                Stmt::Return(expr)
+            }
             Token::Let => self.parse_let(),
             Token::If => self.parse_if(),
             Token::While => self.parse_while(),
@@ -300,6 +316,13 @@ impl<'a> Parser<'a> {
         t
     }
 
+    pub fn parse_program(&mut self) -> Program {
+        let mut algorithms = Vec::new();
+        while self.current != Token::Eof {
+            algorithms.push(self.parse_algorithm());
+        }
+        Program { algorithms }
+    }
 
     fn parse_expr(&mut self) -> Expr {
         let mut left = self.parse_and(); 

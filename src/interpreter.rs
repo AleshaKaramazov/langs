@@ -1,27 +1,50 @@
 use crate::ast::*;
 use crate::env::Env;
 use crate::value::Value;
-use std::io::{self, Write};
+use std::{collections::HashMap, io::{self, Write}};
 
 type RuntimeResult<T> = Result<T, String>;
 
 pub struct Interpreter {
     env: Env,
+    functions: HashMap<String, Algorithm>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self { env: Env::new() }
+        Self { 
+            env: Env::new(),
+            functions: HashMap::new() 
+        }
     }
 
-    pub fn run(&mut self, alg: &Algorithm) -> RuntimeResult<()> {
-        if alg.name != "Главная" {
-            return Err("Точкой входа должен быть Алгоритм 'Главная'".to_string());
+    pub fn run(&mut self, prog: &Program) -> RuntimeResult<()> {
+        for alg in &prog.algorithms {
+            self.functions.insert(alg.name.clone(), alg.clone());
         }
-        self.env.enter_scope();
-        self.exec_block(&alg.body)?;
-        self.env.exit_scope();
+
+        let main_alg = self.functions.get("Главная")
+            .ok_or("В программе должен быть Алгоритм 'Главная'".to_string())?
+            .clone();
+        self.exec_function(&main_alg, vec![])?;
         Ok(())
+    }
+
+    fn exec_function(&mut self, alg: &Algorithm, args: Vec<Value>) -> RuntimeResult<Value> {
+        self.env.enter_scope();
+        
+        for ((name, _), val) in alg.args.iter().zip(args.into_iter()) {
+            self.env.declare(name.clone(), val);
+        }
+
+        let mut result = Value::Int(0); // Дефолт (Void)
+        
+        if let Some(ret_val) = self.exec_block(&alg.body)? {
+            result = ret_val;
+        }
+
+        self.env.exit_scope();
+        Ok(result)
     }
 
     fn exec_block(&mut self, stmts: &[Stmt]) -> RuntimeResult<Option<Value>> {
@@ -41,6 +64,10 @@ impl Interpreter {
 
     fn exec_stmt(&mut self, stmt: &Stmt) -> RuntimeResult<Option<Value>> {
         match stmt {
+            Stmt::Return(expr) => {
+                let val = self.eval_expr(expr)?;
+                Ok(Some(val)) 
+            }
             Stmt::Let { name, expr, .. } => {
                 let val = self.eval_expr(expr)?;
                 self.env.declare(name.clone(), val); 
@@ -57,21 +84,17 @@ impl Interpreter {
             Stmt::AssignMult { name, expr } => self.exec_compound_assign(name, expr, BinOp::Mult),
             Stmt::AssignDiv { name, expr } => self.exec_compound_assign(name, expr, BinOp::Div),
 
-            Stmt::If { cond, then_body, else_if, else_body } => {
-                let cond_val = self.eval_expr(cond)?;
-                if self.is_truthy(&cond_val)? {
-                    return self.exec_block(then_body);
-                }
-                
-                for (e_cond, e_body) in else_if {
-                    let e_val = self.eval_expr(e_cond)?;
-                    if self.is_truthy(&e_val)? {
-                        return self.exec_block(e_body);
+            Stmt::If { cond, then_body, else_body, .. } => {
+                let val = self.eval_expr(cond)?;
+                if let Value::Bool(true) = val {
+                    // Если внутри if был return, пробрасываем его наверх
+                    if let Some(r) = self.exec_block(then_body)? {
+                        return Ok(Some(r));
                     }
-                }
-
-                if let Some(body) = else_body {
-                    return self.exec_block(body);
+                } else if let Some(else_b) = else_body {
+                    if let Some(r) = self.exec_block(else_b)? {
+                        return Ok(Some(r));
+                    }
                 }
                 Ok(None)
             }
@@ -193,10 +216,14 @@ impl Interpreter {
                 }
 
                 if *intrinsic {
-                    self.call_intrinsic(name, evaluated_args)
-                } else {
-                    Err(format!("Пользовательские функции пока не реализованы: {}", name))
+                    return self.call_intrinsic(name, evaluated_args);
                 }
+
+                let func_alg = self.functions.get(name)
+                    .ok_or(format!("Функция {} не найдена", name))?
+                    .clone();
+                
+                self.exec_function(&func_alg, evaluated_args)
             }
         }
     }

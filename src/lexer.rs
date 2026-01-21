@@ -54,6 +54,8 @@ pub enum Token {
     Not,
     NotEqual,
 
+    Arrow, // -> 
+
     LParen,
     RParen,
     Comma,
@@ -191,9 +193,12 @@ impl<'a> Lexer<'a> {
                 }
             }
             '-' => {
-                self.input.next();
-                if self.input.peek() == Some(&'=') {
+                self.input.next(); 
+                if let Some(&'>') = self.input.peek() {
                     self.input.next();
+                    Token::Arrow
+                } else if let Some(&'=') = self.input.peek() {
+                    self.input.next(); 
                     Token::MinusAssign
                 } else {
                     Token::Minus

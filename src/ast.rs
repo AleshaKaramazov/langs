@@ -4,7 +4,8 @@ pub enum Type {
     Bool,
     String,
     Array(Box<Type>),
-    _Void, 
+    Void, 
+    Unknown,
     Infer, 
 }
 
@@ -12,11 +13,18 @@ pub enum Type {
 pub struct Algorithm {
     pub name: String,
     pub args: Vec<(String, Type)>,
+    pub ret_type: Type,
     pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone)]
+pub struct Program {
+    pub algorithms: Vec<Algorithm>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Stmt {
+    Return(Expr),
     Let {
         name: String,
         ty: Type,

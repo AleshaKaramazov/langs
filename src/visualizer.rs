@@ -208,6 +208,7 @@ impl Visualizer {
                 (init_id, exit_id)
             }
             Stmt::ForEach { var:_, collection:_, body:_ } => todo!(),
+            _=> unreachable!()
         }
     }
 }

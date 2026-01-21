@@ -34,37 +34,46 @@ fn main() {
     };
 
 
+
     let lexer = Lexer::new(&source);
-    
     let mut parser = Parser::new(lexer);
-    let algorithm = parser.parse_algorithm();
+    
+    let program = parser.parse_program(); 
+
+    let main_algorithm = program.algorithms.iter()
+        .find(|alg| alg.name == "Главная")
+        .cloned();
 
     if args.len() > 2 && args[2] == "--draw" {
-        let viz = Visualizer::new();
-        let dot_output = viz.translate(algorithm);
-        if let Err(e) = fs::write("graph.dot", dot_output) {
-             eprintln!("ОШИБКА: Не удалось записать DOT файл: {}", e);
-             process::exit(1);
+        if let Some(alg) = main_algorithm {
+            let viz = Visualizer::new();
+            let dot_output = viz.translate(alg);
+            if let Err(e) = fs::write("graph.dot", dot_output) {
+                 eprintln!("ОШИБКА: Не удалось записать DOT файл: {}", e);
+                 process::exit(1);
+            }
+            println!("Граф сохранен в graph.dot.");
+        } else {
+            eprintln!("ОШИБКА: Нечего рисовать, алгоритм 'Главная' не найден.");
         }
-        println!("Граф сохранен в graph.dot. Используйте 'dot -Tpng graph.dot -o out.png'.");
         return;
     }
 
-    if algorithm.name != "Главная" {
-        eprintln!("ОШИБКА: В программе должен быть основной алгоритм с именем 'Главная'. Найдено: '{}'", algorithm.name);
+    if main_algorithm.is_none() {
+        eprintln!("ОШИБКА: В программе должен быть основной алгоритм с именем 'Главная'.");
         process::exit(1);
     }
 
     let mut checker = TypeChecker::new();
-    if let Err(e) = checker.check_algorithm(&algorithm) {
+    if let Err(e) = checker.check_program(&program) {
         eprintln!("ОШИБКА ТИПИЗАЦИИ: {}", e);
         process::exit(1);
     }
+
     let mut interpreter = Interpreter::new();
-    
-    match interpreter.run(&algorithm) {
+    match interpreter.run(&program) {
         Ok(_) => {
-            println!("ПРОГРАММА ЗАВЕРШИЛАСЬ УСПЕШНО!");
+            //println!("ПРОГРАММА ЗАВЕРШИЛАСЬ УСПЕШНО!");
         },
         Err(e) => {
             eprintln!("ОШИБКА ВЫПОЛНЕНИЯ: {}", e);
