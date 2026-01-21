@@ -235,7 +235,7 @@ impl TypeChecker {
                         if l_ty == r_ty { Ok(Type::Bool) } 
                         else { Err("Нельзя сравнивать разные типы".into()) }
                     }
-                    BinOp::Less | BinOp::Greater => {
+                    BinOp::Less | BinOp::Greater | BinOp::LessOrEqual | BinOp::GreaterOrEqual => {
                         if l_ty == Type::Int && r_ty == Type::Int { Ok(Type::Bool) }
                         else { Err("Сравнение больше/меньше только для чисел".into()) }
                     }

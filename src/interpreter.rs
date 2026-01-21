@@ -275,6 +275,8 @@ impl Interpreter {
             (Value::Int(l), Value::Int(r), BinOp::Less) => Ok(Value::Bool(l < r)),
             (Value::Int(l), Value::Int(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
             (Value::Int(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+            (Value::Int(l), Value::Int(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
+            (Value::Int(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
 
             (Value::Bool(l), Value::Bool(r), BinOp::And) => Ok(Value::Bool(l && r)),
             (Value::Bool(l), Value::Bool(r), BinOp::Or) => Ok(Value::Bool(l || r)),

@@ -50,6 +50,7 @@ impl Visualizer {
                     BinOp::Div => "/", BinOp::Mod => "%", BinOp::Equal => "=",
                     BinOp::Less => "<", BinOp::Greater => ">",
                     BinOp::Or => "или", BinOp::And => "и", BinOp::NotEqual => "≠",
+                    BinOp::GreaterOrEqual => ">=", BinOp::LessOrEqual => "<=",
                 };
                 format!("({} {} {})", self.fmt_expr(left), op_str, self.fmt_expr(right))
             }

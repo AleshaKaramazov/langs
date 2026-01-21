@@ -47,6 +47,8 @@ pub enum Token {
     Less,
     Greater,       
     Mult,
+    LessOrEqual,
+    GreaterOrEqual,
     MultAssigment,
     Mod,     
     And,
@@ -158,11 +160,19 @@ impl<'a> Lexer<'a> {
             }
             '<' => {
                 self.input.next();
-                Token::Less
+                if self.match_next('=') {
+                    Token::LessOrEqual
+                } else {
+                    Token::Less
+                }
             }
             '>' => {
                 self.input.next();
-                Token::Greater
+                if self.match_next('=') {
+                    Token::GreaterOrEqual
+                } else {
+                    Token::Greater
+                }
             }
             '%' => {
                 self.input.next();
