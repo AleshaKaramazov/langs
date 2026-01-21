@@ -131,7 +131,11 @@ impl TypeChecker {
                 let final_ty = if *ty == Type::Infer {
                     expr_ty.clone()
                 } else {
-                    if expr_ty != Type::Unknown && *ty != expr_ty {
+                    if expr_ty != Type::Unknown && *ty != expr_ty && 
+                    match ty {
+                        Type::Array(inner) => **inner != expr_ty,
+                        _=> true
+                    }{
                         return Err(format!("Ошибка в 'пусть {}': ожидался тип {:?}, получен {:?}", name, ty, expr_ty));
                     }
                     ty.clone()
@@ -248,6 +252,30 @@ impl TypeChecker {
                         if r_ty == Type::Bool { Ok(Type::Bool) }
                         else { Err("Оператор 'не' только для булевых значений".into()) }
                     }
+                }
+            }
+            Expr::MethodCall { target, method, args } => {
+                let target_ty = self.check_expr(target)?;
+                
+                match (target_ty, method.as_str()) {
+                    (Type::String, "длинна") => {
+                        if !args.is_empty() { return Err("Метод 'длинна' не принимает аргументов".into()); }
+                        Ok(Type::Int)
+                    }
+                    (Type::Array(_), "длинна") => {
+                        Ok(Type::Int)
+                    }
+                    (Type::Array(inner_ty), "добавить") => {
+                        if args.len() != 1 {
+                            return Err("Метод 'добавить' ожидает 1 аргумент".into());
+                        }
+                        let arg_ty = self.check_expr(&args[0])?;
+                        if arg_ty != *inner_ty {
+                            return Err(format!("Нельзя добавить {:?} в массив типа {:?}", arg_ty, inner_ty));
+                        }
+                        Ok(Type::Void) 
+                    }
+                    (t, m) => Err(format!("Тип {:?} не имеет метода '{}'", t, m))
                 }
             }
             Expr::Array(elems) => {

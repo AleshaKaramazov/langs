@@ -315,6 +315,13 @@ impl<'a> Parser<'a> {
             Token::TypeNat | Token::TypeInt => Type::Int,
             Token::TypeBool => Type::Bool,
             Token::TypeString => Type::String,
+            Token::Array => {
+                self.advance(); 
+                self.expect(Token::Less); 
+                let inner_type = self.parse_type(); 
+                self.expect(Token::Greater); 
+                return Type::Array(Box::new(inner_type))
+            }
             _ => panic!("Неизвестный тип"),
         };
         self.advance();
@@ -414,7 +421,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary(&mut self) -> Expr {
-        match &self.current {
+        let mut expr = match &self.current {
             Token::Not => {
                 self.advance();
                 let expr = self.parse_primary();
@@ -500,7 +507,36 @@ impl<'a> Parser<'a> {
                 expr
             }
             _ => panic!("Неожиданный токен в выражении: {:?}", self.current),
-        }
+        };
+        while self.current == Token::Dot {
+                self.advance(); // пропускаем '.'
+                let method_name = match &self.current {
+                    Token::Ident(name) => name.clone(),
+                    _ => panic!("Ожидалось имя метода после '.'"),
+                };
+                self.advance();
+                
+                self.expect(Token::LParen);
+                let mut args = Vec::new();
+                if self.current != Token::RParen {
+                    loop {
+                        args.push(self.parse_expr());
+                        if self.current == Token::Comma {
+                            self.advance();
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                self.expect(Token::RParen);
+
+                expr = Expr::MethodCall {
+                    target: Box::new(expr),
+                    method: method_name,
+                    args,
+                };
+            }
+        expr
     }
 
     fn finish_call(&mut self, name: String, intrinsic: bool) -> Expr {

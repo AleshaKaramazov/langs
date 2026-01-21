@@ -57,6 +57,7 @@ impl Visualizer {
                 let formatted_args: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
                 format!("{}{}({})", name, if *intrinsic { "!" } else { "" }, formatted_args.join(", "))
             }
+            _=> format!("can't ")
         }
     }
 

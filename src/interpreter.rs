@@ -176,6 +176,29 @@ impl Interpreter {
             Expr::Var(name) => {
                 Ok(self.env.get(name)) 
             },
+            Expr::MethodCall { target, method, args } => {
+                if method == "добавить" {
+                    if let Expr::Var(name) = &**target {
+                        let item = self.eval_expr(&args[0])?;
+                        let val = self.env.get(name);
+                        
+                        if let Value::Array(mut arr) = val {
+                            arr.push(item);
+                            self.env.assign(name, Value::Array(arr));
+                            return Ok(Value::Void);
+                        } else {
+                            return Err(format!("Метод 'добавить' вызван не у массива"));
+                        }
+                    }
+                }
+
+                let val = self.eval_expr(target)?;
+                match (val, method.as_str()) {
+                    (Value::String(s), "длинна") => Ok(Value::Int(s.chars().count() as i64)),
+                    (Value::Array(arr), "длинна") => Ok(Value::Int(arr.len() as i64)),
+                    _ => Err(format!("Метод {} не реализован", method))
+                }
+            }
             Expr::Array(elems) => {
                 let mut values = Vec::new();
                 for e in elems {

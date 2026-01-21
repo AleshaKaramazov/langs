@@ -71,6 +71,7 @@ pub enum Token {
     Массиве,
     Диапазоне,
     DotDot,  
+    Dot,
 }
 
 pub struct Lexer<'a> {
@@ -214,7 +215,7 @@ impl<'a> Lexer<'a> {
                     self.input.next();
                     Token::DotDot
                 } else {
-                    panic!("неизвестный символ: {}", ch);
+                    Token::Dot
                 }
             }
             _ => panic!("неизвестный символ: {}", ch),
@@ -314,7 +315,7 @@ impl<'a> Lexer<'a> {
             "Истина" => Token::Bool(true),
             "Ложь" => Token::Bool(false),
 
-            "массив" => Token::Array,
+            "массив" | "Массив" => Token::Array,
                 
             //syntax sugar
             "и" | "И" => Token::And,

@@ -75,6 +75,11 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Var(String),
+    MethodCall {
+        target: Box<Expr>, 
+        method: String,    
+        args: Vec<Expr>,   
+    },
     Array(Vec<Expr>), 
     Index {
         target: Box<Expr>,
