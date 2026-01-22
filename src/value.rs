@@ -1,8 +1,15 @@
 use std::fmt;
+use crate::ast::Expr; // <-- Добавить импорт
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Void,
+    Closure {
+        param: String,
+        body: Expr,
+        env: Vec<HashMap<String, Value>> 
+    },
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -13,6 +20,7 @@ pub enum Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Value::Closure { .. } => write!(f, "<функция>"), 
             Self::Void => write!(f, "пусто"),
             Self::Float(fl) => write!(f, "{}", fl),
             Self::Int(i) => write!(f, "{}", i),

@@ -23,6 +23,7 @@ pub enum Token {
     Array,
     LBracket,
     RBracket,
+    Pipe,
 
     TypeNat,
     TypeInt,
@@ -147,7 +148,7 @@ impl<'a> Lexer<'a> {
                 if self.match_next('|') {
                     Token::Or
                 } else {
-                    panic!("Ожидался оператор ||");
+                    Token::Pipe
                 }
             }
             '[' => { self.input.next(); Token::LBracket }

@@ -439,6 +439,28 @@ impl<'a> Parser<'a> {
 
     fn parse_primary(&mut self) -> Expr {
         let mut expr = match &self.current {
+            Token::Pipe => {
+                self.advance(); 
+                
+                let param_name = match &self.current {
+                    Token::Ident(s) => s.clone(),
+                    _ => panic!("Ожидалось имя аргумента лямбды"),
+                };
+                self.advance();
+
+                self.expect(Token::Colon);
+                let param_ty = self.parse_type();
+
+                self.expect(Token::Pipe); 
+                
+                let body = self.parse_expr(); 
+
+                Expr::Lambda {
+                    param: param_name,
+                    param_ty: param_ty,
+                    body: Box::new(body),
+                }
+            }
             Token::Not => {
                 self.advance();
                 let expr = self.parse_primary();

@@ -213,6 +213,13 @@ impl TypeChecker {
     fn check_expr(&mut self, expr: &Expr) -> Result<Type, String> {
         match expr {
             Expr::NativeCall { .. } => Ok(Type::Unknown),
+            Expr::Lambda { param, param_ty, body } => {
+                self.env.enter_scope();
+                self.env.declare(param.clone(), param_ty.clone())?;
+                let body_ty = self.check_expr(body)?;
+                self.env.exit_scope();
+                Ok(Type::Function(Box::new(param_ty.clone()), Box::new(body_ty)))
+            }
             Expr::Int(_) => Ok(Type::Int),
             Expr::Bool(_) => Ok(Type::Bool),
             Expr::Float(_) => Ok(Type::Float),  
@@ -279,6 +286,18 @@ impl TypeChecker {
                         }
                         Ok(Type::Bool)
 
+                    }
+                    (Type::Array(inner_ty), "Где") => {
+                        if args.len() != 1 { return Err("Метод 'Где' требует 1 аргумент".into()); }
+                        let arg_ty = self.check_expr(&args[0])?;
+                        
+                        if let Type::Function(arg, ret) = arg_ty {
+                            if *arg != *inner_ty { return Err(format!("Лямбда ожидает {:?}, а в массиве {:?}", arg, inner_ty)); }
+                            if *ret != Type::Bool { return Err("Лямбда должна возвращать Лог".into()); }
+                        } else {
+                            return Err("Аргумент должен быть функцией".into());
+                        }
+                        Ok(Type::Array(inner_ty))
                     }
                     (Type::Array(inner_ty), "Добавить") => {
                         if args.len() != 1 {

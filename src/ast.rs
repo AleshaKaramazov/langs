@@ -4,6 +4,7 @@ pub enum Type {
     Float,
     Bool,
     String,
+    Function(Box<Type>, Box<Type>),
     Array(Box<Type>),
     Void, 
     Unknown,
@@ -71,13 +72,18 @@ pub enum UnaryOp {
     Not,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
     Var(String),
+    Lambda {
+        param: String,
+        param_ty: Type,
+        body: Box<Expr>,
+    },
     NativeCall {
         path: String,
         args: Vec<Expr>,

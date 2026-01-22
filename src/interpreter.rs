@@ -193,6 +193,13 @@ impl Interpreter {
             Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::String(s) => Ok(Value::String(s.clone())),
+            Expr::Lambda { param, body, .. } => {
+                    Ok(Value::Closure {
+                        param: param.clone(),
+                        body: *body.clone(),
+                        env: self.env.snapshot(),
+                    })
+            }
             Expr::NativeCall { path, args } => {
                 let mut evaluated_args = Vec::new();
                 for arg in args {
@@ -205,7 +212,31 @@ impl Interpreter {
                 Ok(self.env.get(name)) 
             },
             Expr::MethodCall { target, method, args } => {
-                if method == "Добавить" {
+                if method == "Где" {
+                     let target_val = self.eval_expr(target)?;
+                     let closure_val = self.eval_expr(&args[0])?;
+
+                     if let (Value::Array(elements), 
+                         Value::Closure { param, body, env }) 
+                         = (target_val, closure_val) {
+                         let mut res_arr = Vec::new();
+                         for item in elements {
+                             let old_scopes = self.env.replace_scopes(env.clone());
+                             self.env.enter_scope();
+                             self.env.declare(param.clone(), item.clone());
+                             
+                             let res = self.eval_expr(&body)?;
+                             
+                             self.env.exit_scope();
+                             self.env.replace_scopes(old_scopes); 
+
+                             if let Value::Bool(true) = res {
+                                 res_arr.push(item);
+                             }
+                         }
+                         return Ok(Value::Array(res_arr));
+                     }
+                } else if method == "Добавить" {
                     if let Expr::Var(name) = &**target {
                         let item = self.eval_expr(&args[0])?;
                         let val = self.env.get(name);

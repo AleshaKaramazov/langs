@@ -12,6 +12,17 @@ impl Env {
         }
     }
 
+    pub fn snapshot(&self) -> Vec<HashMap<String, Value>> {
+    self.scopes.clone()
+}
+
+pub fn replace_scopes(&mut self, new_scopes: Vec<HashMap<String, Value>>) 
+        -> Vec<HashMap<String, Value>> {
+    let old = 
+        std::mem::replace(&mut self.scopes, new_scopes);
+    old
+}
+
     pub fn enter_scope(&mut self) {
         self.scopes.push(HashMap::new());
     }
