@@ -114,7 +114,7 @@ impl TypeChecker {
                         match maybe_expr {
                             Some(expr) => {
                                 let actual = self.check_expr(expr)?;
-                                if &actual != expected_ret {
+                                if &actual != expected_ret && actual != Type::Unknown {
                                     return Err(format!("Функция должна возвращать {:?}, но возвращает {:?}", expected_ret, actual));
                                 }
                             }
@@ -212,6 +212,7 @@ impl TypeChecker {
 
     fn check_expr(&mut self, expr: &Expr) -> Result<Type, String> {
         match expr {
+            Expr::NativeCall { .. } => Ok(Type::Unknown),
             Expr::Int(_) => Ok(Type::Int),
             Expr::Bool(_) => Ok(Type::Bool),
             Expr::Float(_) => Ok(Type::Float),  

@@ -1,3 +1,5 @@
+#[macro_use]
+mod native;
 mod lexer;
 mod parser;
 mod ast;

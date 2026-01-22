@@ -77,6 +77,10 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Var(String),
+    NativeCall {
+        path: String,
+        args: Vec<Expr>,
+    },
     MethodCall {
         target: Box<Expr>, 
         method: String,    

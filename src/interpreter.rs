@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::env::Env;
+use crate::native::NativeRegistry;
 use crate::value::Value;
 use std::{collections::HashMap, io::{self, Write}};
 
@@ -8,13 +9,30 @@ type RuntimeResult<T> = Result<T, String>;
 pub struct Interpreter {
     env: Env,
     functions: HashMap<String, Algorithm>,
+    native: NativeRegistry,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+
+        let mut native = NativeRegistry::new();
+
+        bind_native!(native, "std::i64::pow", |base: i64, exp: i64| {
+            if exp < 0 {
+                0 
+            } else {
+                base.pow(exp as u32)
+            }
+        });
+
+        bind_native!(native, "std::f64::sqrt", |val: f64| {
+            val.sqrt()
+        });
+
         Self { 
             env: Env::new(),
-            functions: HashMap::new() 
+            functions: HashMap::new(),
+            native,
         }
     }
 
@@ -174,6 +192,14 @@ impl Interpreter {
             Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::String(s) => Ok(Value::String(s.clone())),
+            Expr::NativeCall { path, args } => {
+                let mut evaluated_args = Vec::new();
+                for arg in args {
+                    evaluated_args.push(self.eval_expr(arg)?);
+                }
+                
+                self.native.call(path, evaluated_args)
+            },
             Expr::Var(name) => {
                 Ok(self.env.get(name)) 
             },

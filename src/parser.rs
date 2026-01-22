@@ -520,6 +520,56 @@ impl<'a> Parser<'a> {
                 self.expect(Token::RParen);
                 expr
             }
+            Token::Bang => {
+                self.advance();
+                if self.current == Token::LBracket {
+                    self.advance(); 
+                let path = match &self.current {
+                    Token::String(s) => {
+                        let s = s.clone();
+                        self.advance();
+                        s
+                    }
+                    _ => {
+                        let mut p = String::new();
+                            while self.current != Token::RBracket 
+                                && self.current != Token::Eof {
+                                match &self.current {
+                                    Token::Ident(s) => p.push_str(s),
+                                    Token::Dot => p.push('.'),
+                                    Token::Colon => p.push(':'),
+                                    _ => break,
+                                }
+                                self.advance();
+                            }
+                        p
+                    }
+                };                    
+                    self.expect(Token::RBracket);
+                    
+                    self.expect(Token::LParen); 
+                    let mut args = Vec::new();
+                    if self.current != Token::RParen {
+                        loop {
+                            args.push(self.parse_expr());
+                            if self.current == Token::Comma {
+                                self.advance();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    self.expect(Token::RParen); 
+                    
+                    Expr::NativeCall { path, args }
+                } else {
+                    let expr = self.parse_primary();
+                    Expr::Unary {
+                        op: UnaryOp::Not,
+                        right: Box::new(expr),
+                    }
+                }
+            }        
             _ => panic!("Неожиданный токен в выражении: {:?}", self.current),
         };
         while self.current == Token::Dot {
