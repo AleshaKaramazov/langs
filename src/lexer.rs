@@ -112,8 +112,26 @@ impl<'a> Lexer<'a> {
 
         match ch {
             '/' => {
-                self.input.next();
-                if self.match_next('=') {
+                self.input.next(); 
+
+                if self.match_next('/') {
+                    while let Some(c) = self.input.peek() {
+                        if *c == '\n' {
+                            break;
+                        }
+                        self.input.next();
+                    }
+                    self.next_token()
+                } else if self.match_next('*') {
+                    while let Some(c) = self.input.next() {
+                        if c == '*' {
+                            if self.match_next('/') {
+                                break;
+                            }
+                        }
+                    }
+                    self.next_token()
+                } else if self.match_next('=') {
                     Token::DivAssign
                 } else {
                     Token::Div

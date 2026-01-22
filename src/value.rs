@@ -1,5 +1,5 @@
 use std::fmt;
-use crate::ast::Expr; // <-- Добавить импорт
+use crate::ast::Expr; 
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
