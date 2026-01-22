@@ -313,6 +313,7 @@ impl<'a> Parser<'a> {
     fn parse_type(&mut self) -> Type {
         let t = match self.current {
             Token::TypeNat | Token::TypeInt => Type::Int,
+            Token::TypeFloat => Type::Float,
             Token::TypeBool => Type::Bool,
             Token::TypeString => Type::String,
             Token::Array => {
@@ -451,6 +452,11 @@ impl<'a> Parser<'a> {
                 let e = Expr::Int(*v);
                 self.advance();
                 e
+            }
+            Token::Float(f) => {
+                let val = *f;
+                self.advance();
+                Expr::Float(val)
             }
             Token::Array => {
                 self.advance();

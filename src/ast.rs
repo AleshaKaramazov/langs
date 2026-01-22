@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
+    Float,
     Bool,
     String,
     Array(Box<Type>),
@@ -72,6 +73,7 @@ pub enum UnaryOp {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i64),
+    Float(f64),
     Bool(bool),
     String(String),
     Var(String),

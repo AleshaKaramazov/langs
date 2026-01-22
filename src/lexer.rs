@@ -26,10 +26,12 @@ pub enum Token {
 
     TypeNat,
     TypeInt,
+    TypeFloat,
     TypeBool,
     TypeString,
 
     Int(i64),
+    Float(f64),
     Bool(bool),
     String(String),
     Ident(String),
@@ -253,16 +255,23 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_number(&mut self) -> Token {
-        let mut num = String::new();
-        while let Some(c) = self.input.peek() {
-            if c.is_ascii_digit() {
-                num.push(*c);
-                self.input.next();
+        let mut s = String::new();
+        let mut is_float = false;
+        while let Some(&ch) = self.input.peek() {
+            if ch.is_ascii_digit() {
+                s.push(self.input.next().unwrap());
+            } else if ch == '.' && !is_float {
+                is_float = true;
+                s.push(self.input.next().unwrap());
             } else {
                 break;
             }
         }
-        Token::Int(num.parse().unwrap())
+        if is_float {
+            Token::Float(s.parse().unwrap())
+        } else {
+            Token::Int(s.parse().unwrap())
+        }
     }
 
     fn read_string(&mut self) -> Token {
@@ -311,6 +320,7 @@ impl<'a> Lexer<'a> {
 
             "Нат" => Token::TypeNat,
             "Цел" => Token::TypeInt,
+            "Десятич" => Token::TypeFloat,
             "Лог" => Token::TypeBool,
             "Строка" => Token::TypeString,
 

@@ -171,6 +171,7 @@ impl Interpreter {
     fn eval_expr(&mut self, expr: &Expr) -> RuntimeResult<Value> {
         match expr {
             Expr::Int(i) => Ok(Value::Int(*i)),
+            Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::String(s) => Ok(Value::String(s.clone())),
             Expr::Var(name) => {
@@ -293,6 +294,32 @@ impl Interpreter {
             (Value::Int(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
             (Value::Int(l), Value::Int(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
             (Value::Int(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
+
+
+            (Value::Float(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l + r)),
+            (Value::Float(l), Value::Int(r), BinOp::Plus) => Ok(Value::Float(l + r as f64)),
+            (Value::Int(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l as f64 + r)),
+            (Value::Float(l), Value::Float(r), BinOp::Sub) => Ok(Value::Float(l - r)),
+            (Value::Float(l), Value::Float(r), BinOp::Mult) => Ok(Value::Float(l * r)),
+            (Value::Float(l), Value::Float(r), BinOp::Div) => {
+                if r == 0.0 {
+                    return Err("Деление на ноль!".to_string());
+                }
+                Ok(Value::Float(l / r))
+            },
+            (Value::Float(l), Value::Float(r), BinOp::Mod) => {
+                if r == 0.0 {
+                    return Err("Деление на ноль (остаток)!".to_string());
+                }
+                Ok(Value::Float(l % r))
+            },
+            
+            (Value::Float(l), Value::Float(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
+            (Value::Float(l), Value::Float(r), BinOp::Less) => Ok(Value::Bool(l < r)),
+            (Value::Float(l), Value::Float(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::Float(l), Value::Float(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+            (Value::Float(l), Value::Float(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
+            (Value::Float(l), Value::Float(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
 
             (Value::Bool(l), Value::Bool(r), BinOp::And) => Ok(Value::Bool(l && r)),
             (Value::Bool(l), Value::Bool(r), BinOp::Or) => Ok(Value::Bool(l || r)),

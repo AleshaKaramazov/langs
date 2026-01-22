@@ -214,6 +214,7 @@ impl TypeChecker {
         match expr {
             Expr::Int(_) => Ok(Type::Int),
             Expr::Bool(_) => Ok(Type::Bool),
+            Expr::Float(_) => Ok(Type::Float),  
             Expr::String(_) => Ok(Type::String),
             Expr::Var(name) => self.env.lookup(name),
             Expr::Binary { left, op, right } => {
@@ -227,7 +228,13 @@ impl TypeChecker {
                         }
                         if l_ty == Type::Int && r_ty == Type::Int {
                             Ok(Type::Int)
-                        } else {
+                        } else if l_ty == Type::Float && r_ty == Type::Float {
+                            Ok(Type::Float)
+                        } else if (l_ty == Type::Float && r_ty == Type::Int) ||
+                                (r_ty == Type::Float && l_ty == Type::Int) {
+                            Ok(Type::Float)
+                        }
+                        else {
                             Err(format!("Арифметическая операция {:?} требует Int, получено {:?} и {:?}", op, l_ty, r_ty))
                         }
                     }
