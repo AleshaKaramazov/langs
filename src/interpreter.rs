@@ -149,14 +149,15 @@ impl Interpreter {
                 }
                 Ok(None)
             }
-            Stmt::For { var, start, end, body } => {
+            Stmt::For { var, start, cont, end, body } => {
                 let start_val = self.eval_expr(start)?;
                 let end_val = self.eval_expr(end)?;
 
                 match (start_val, end_val) {
-                    (Value::Int(s), Value::Int(e)) => {
+                    (Value::Int(s), Value::Int(mut e)) => {
                         self.env.enter_scope();
                         self.env.declare(var.clone(), Value::Int(s)); 
+                        if !cont {e-=1}
                         for i in s..=e {
                             self.env.assign(var, Value::Int(i));
                             if let Some(ret) = self.exec_block(body)? {

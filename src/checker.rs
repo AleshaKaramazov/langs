@@ -191,7 +191,7 @@ impl TypeChecker {
                 if cond_ty != Type::Bool { return Err("Условие 'пока' должно быть Лог".into()); }
                 self.check_block(body, expected_ret)?;
             }
-            Stmt::For { var, start, end, body } => {
+            Stmt::For { var, start, cont: _, end, body } => {
                 let start_ty = self.check_expr(start)?;
                 let end_ty = self.check_expr(end)?;
                 if start_ty != Type::Int || end_ty != Type::Int {

@@ -49,6 +49,7 @@ pub enum Stmt {
     For {
         var: String,
         start: Expr,
+        cont: bool,
         end: Expr,
         body: Vec<Stmt>,
     },

@@ -185,11 +185,12 @@ impl Visualizer {
                 writeln!(self.dot, "  {} -> {} [xlabel=\"нет\"];", current_id, exit_id).unwrap();
                 (current_id, exit_id)
             }
-            Stmt::For { var, start, end, body } => {
+            Stmt::For { var, start, cont, end, body } => {
                 let init_id = self.next_id();
                 writeln!(self.dot, "  {} [label=\"{} = {}\"];", init_id, var, self.fmt_expr(start)).unwrap();
                 let cond_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"{} < {}?\", shape=diamond, fillcolor=\"#ffe0b2\"];", cond_id, var, self.fmt_expr(end)).unwrap();
+                writeln!(self.dot, "  {} [label=\"{} <{} {}?\", shape=diamond, fillcolor=\"#ffe0b2\"];", cond_id, var, 
+                    if *cont {"="} else {""}, self.fmt_expr(end)).unwrap();
                 writeln!(self.dot, "  {} -> {};", init_id, cond_id).unwrap();
 
                 let (b_entry, b_exit) = self.translate_block(body);

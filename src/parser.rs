@@ -253,6 +253,10 @@ impl<'a> Parser<'a> {
         self.advance();
         self.expect(Token::From);
         let start = self.parse_expr();
+        let cont = if self.current == Token::Equal {
+            self.advance();
+            true
+        } else {false};
         self.expect(Token::To);
         let end = self.parse_expr();
         if self.current == Token::Do { self.advance(); }
@@ -263,7 +267,7 @@ impl<'a> Parser<'a> {
         } else {
             vec![self.parse_stmt()]
         };
-        Stmt::For { var, start, end, body }
+        Stmt::For { var, start, cont, end, body }
     }
 
     fn parse_human_for(&mut self) -> Stmt {
@@ -283,11 +287,15 @@ impl<'a> Parser<'a> {
             self.expect(Token::LParen);
             let start = self.parse_expr();
             self.expect(Token::DotDot);
+            let cont = if self.current == Token::Assign {
+                self.advance();
+                true 
+            } else {false};
             let end = self.parse_expr();
             self.expect(Token::RParen);
             if self.current == Token::Do { self.advance(); }
             let body = self.parse_block_helper();
-            Stmt::For { var, start, end, body }
+            Stmt::For { var, start, cont, end, body }
         } else if self.current == Token::Массиве {
             self.advance();
             self.expect(Token::LParen);
@@ -573,7 +581,7 @@ impl<'a> Parser<'a> {
             _ => panic!("Неожиданный токен в выражении: {:?}", self.current),
         };
         while self.current == Token::Dot {
-                self.advance(); // пропускаем '.'
+                self.advance(); 
                 let method_name = match &self.current {
                     Token::Ident(name) => name.clone(),
                     _ => panic!("Ожидалось имя метода после '.'"),

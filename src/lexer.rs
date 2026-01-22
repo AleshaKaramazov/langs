@@ -260,7 +260,7 @@ impl<'a> Lexer<'a> {
         while let Some(&ch) = self.input.peek() {
             if ch.is_ascii_digit() {
                 s.push(self.input.next().unwrap());
-            } else if ch == '.' && !is_float {
+            } else if (ch == '.' && self.input.peek() != Some(&'.')) && !is_float {
                 is_float = true;
                 s.push(self.input.next().unwrap());
             } else {
@@ -341,7 +341,7 @@ impl<'a> Lexer<'a> {
             "и" | "И" => Token::And,
             "или" | "ИЛИ" => Token::Or,
             
-            "для" => Token::ForAll,
+            "для" | "Для" => Token::ForAll,
             "всех" => Token::Всех,
             "в" => Token::В,
             "массиве" => Token::Массиве,
