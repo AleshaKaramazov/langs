@@ -310,11 +310,11 @@ impl TypeChecker {
                 }
             }
             Expr::Call { name, args, intrinsic } => {
-                if *intrinsic && name == "написать" {
+                if *intrinsic && name == "Написать" {
                     for arg in args { self.check_expr(arg)?; }
                     return Ok(Type::Int); 
                 }
-                if *intrinsic && name == "считать" {
+                if *intrinsic && name == "Считать" {
                     return Ok(Type::Unknown); 
                 }
 

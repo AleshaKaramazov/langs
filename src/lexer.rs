@@ -296,9 +296,9 @@ impl<'a> Lexer<'a> {
             "нч" => Token::Begin,
             "кц" => Token::End,
             "пусть" => Token::Let,
-            "если" => Token::If,
+            "если" | "Если" => Token::If,
             "то" => Token::Then,
-            "иначе" => Token::Else,
+            "иначе"| "Иначе" => Token::Else,
 
             "пока" => Token::While,
             "для_" => Token::For,

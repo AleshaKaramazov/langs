@@ -319,16 +319,14 @@ impl Interpreter {
 
     fn call_intrinsic(&self, name: &str, args: Vec<Value>) -> RuntimeResult<Value> {
     match name {
-        "написать" => {
+        "Написать" => {
             self.print_values(args);
             Ok(Value::Int(0))
         }
-        "считать" => {
+        "Cчитать" => {
             if let Some(prompt) = args.first() {
                 print!("{}", prompt);
-            } else {
-                print!("> "); 
-            }
+            } 
             
             let _ = io::stdout().flush();
             
