@@ -13,6 +13,7 @@ impl<'a> Parser<'a> {
     }
 
     fn advance(&mut self) {
+        //println!("{:?}", self.current);
         self.current = self.lexer.next_token();
     }
 
@@ -286,7 +287,6 @@ impl<'a> Parser<'a> {
             self.advance();
             self.expect(Token::LParen);
             let start = self.parse_expr();
-            self.expect(Token::DotDot);
             let cont = if self.current == Token::Assign {
                 self.advance();
                 true 

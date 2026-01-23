@@ -354,6 +354,7 @@ impl Interpreter {
             (Value::Int(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
 
 
+            (Value::Float(l), Value::Int(r), BinOp::Sub) => Ok(Value::Float(l - r as f64)),
             (Value::Float(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l + r)),
             (Value::Float(l), Value::Int(r), BinOp::Plus) => Ok(Value::Float(l + r as f64)),
             (Value::Int(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l as f64 + r)),
@@ -408,7 +409,7 @@ impl Interpreter {
             self.print_values(args);
             Ok(Value::Int(0))
         }
-        "Cчитать" => {
+        "Считать" => {
             if let Some(prompt) = args.first() {
                 print!("{}", prompt);
             } 

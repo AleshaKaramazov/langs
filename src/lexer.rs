@@ -238,7 +238,13 @@ impl<'a> Lexer<'a> {
             }
             '!' => {
                 self.input.next();
-                Token::Bang
+                if self.input.peek() == Some(&'=') {
+                    self.input.next();
+                    Token::NotEqual
+                }
+                else {
+                    Token::Bang
+                }
             }
             '.' => {
                 self.input.next();
@@ -279,9 +285,15 @@ impl<'a> Lexer<'a> {
         while let Some(&ch) = self.input.peek() {
             if ch.is_ascii_digit() {
                 s.push(self.input.next().unwrap());
-            } else if (ch == '.' && self.input.peek() != Some(&'.')) && !is_float {
-                is_float = true;
-                s.push(self.input.next().unwrap());
+            } else if ch == '.' {
+                self.input.next();
+                if self.input.peek() == Some(&'.') {
+                    self.input.next();
+                    break;
+                } else {
+                    is_float = true;
+                    s.push('.');
+                }
             } else {
                 break;
             }
