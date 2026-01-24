@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 use crate::value::Value;
 
 pub struct Env {
@@ -12,16 +12,14 @@ impl Env {
         }
     }
 
-    pub fn snapshot(&self) -> Vec<HashMap<String, Value>> {
-    self.scopes.clone()
-}
+    pub fn snapshot(&self) -> Rc<Vec<HashMap<String, Value>>> {
+        Rc::new(self.scopes.clone())
+    }
 
-pub fn replace_scopes(&mut self, new_scopes: Vec<HashMap<String, Value>>) 
+    pub fn replace_scopes(&mut self, new_scopes: Rc<Vec<HashMap<String, Value>>>) 
         -> Vec<HashMap<String, Value>> {
-    let old = 
-        std::mem::replace(&mut self.scopes, new_scopes);
-    old
-}
+        std::mem::replace(&mut self.scopes, (*new_scopes).clone())
+    }
 
     pub fn enter_scope(&mut self) {
         self.scopes.push(HashMap::new());
@@ -52,7 +50,7 @@ pub fn replace_scopes(&mut self, new_scopes: Vec<HashMap<String, Value>>)
     pub fn get(&self, name: &str) -> Value {
         for scope in self.scopes.iter().rev() {
             if let Some(v) = scope.get(name) {
-                return v.clone();
+                return v.clone(); 
             }
         }
         panic!("переменная `{}` не найдена", name);

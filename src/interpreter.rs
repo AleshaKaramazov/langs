@@ -2,13 +2,13 @@ use crate::ast::*;
 use crate::env::Env;
 use crate::native::NativeRegistry;
 use crate::value::Value;
-use std::{collections::HashMap, io::{self, Write}};
+use std::{cell::RefCell, collections::HashMap, io::{self, Write}, rc::Rc};
 
 type RuntimeResult<T> = Result<T, String>;
 
 pub struct Interpreter {
     env: Env,
-    functions: HashMap<String, Algorithm>,
+    functions: HashMap<String, Rc<Algorithm>>,
     native: NativeRegistry,
 }
 
@@ -38,7 +38,7 @@ impl Interpreter {
 
     pub fn run(&mut self, prog: &Program) -> RuntimeResult<()> {
         for alg in &prog.algorithms {
-            self.functions.insert(alg.name.clone(), alg.clone());
+            self.functions.insert(alg.name.clone(), Rc::new(alg.clone()));
         }
 
         let main_alg = self.functions.get("Главная")
@@ -56,7 +56,6 @@ impl Interpreter {
         }
 
         let mut result = Value::Void;
-        
         if let Some(ret_val) = self.exec_block(&alg.body)? {
             result = ret_val;
         }
@@ -121,10 +120,12 @@ impl Interpreter {
             Stmt::ForEach { var, collection, body } => {
                 let coll_val = self.eval_expr(collection)?;
                 
-                if let Value::Array(elements) = coll_val {
+                if let Value::Array(elements_rc) = coll_val {
+                    let elements = elements_rc.borrow().clone();
+                    
                     for val in elements {
                         self.env.enter_scope();
-                        self.env.declare(var.clone(), val); 
+                        self.env.declare(var.clone(), val); // val клонируется дешево (Rc)
                         let result = self.exec_block(body)?;
                         self.env.exit_scope();
                         
@@ -192,7 +193,7 @@ impl Interpreter {
             Expr::Int(i) => Ok(Value::Int(*i)),
             Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
-            Expr::String(s) => Ok(Value::String(s.clone())),
+            Expr::String(s) => Ok(Value::String(Rc::new(s.clone()))),
             Expr::Lambda { param, body, .. } => {
                     Ok(Value::Closure {
                         param: param.clone(),
@@ -216,11 +217,14 @@ impl Interpreter {
                      let target_val = self.eval_expr(target)?;
                      let closure_val = self.eval_expr(&args[0])?;
 
-                     if let (Value::Array(elements), 
+                     if let (Value::Array(elements_rc), 
                          Value::Closure { param, body, env }) 
                          = (target_val, closure_val) {
+                         
                          let mut res_arr = Vec::new();
-                         for item in elements {
+                         let elements = elements_rc.borrow();
+                         
+                         for item in elements.iter() {
                              let old_scopes = self.env.replace_scopes(env.clone());
                              self.env.enter_scope();
                              self.env.declare(param.clone(), item.clone());
@@ -228,22 +232,21 @@ impl Interpreter {
                              let res = self.eval_expr(&body)?;
                              
                              self.env.exit_scope();
-                             self.env.replace_scopes(old_scopes); 
+                             self.env.replace_scopes(Rc::new(old_scopes)); 
 
                              if let Value::Bool(true) = res {
-                                 res_arr.push(item);
+                                 res_arr.push(item.clone());
                              }
                          }
-                         return Ok(Value::Array(res_arr));
+                         return Ok(Value::Array(Rc::new(RefCell::new(res_arr))));
                      }
                 } else if method == "Добавить" {
                     if let Expr::Var(name) = &**target {
                         let item = self.eval_expr(&args[0])?;
                         let val = self.env.get(name);
                         
-                        if let Value::Array(mut arr) = val {
-                            arr.push(item);
-                            self.env.assign(name, Value::Array(arr));
+                        if let Value::Array(arr_rc) = val {
+                            arr_rc.borrow_mut().push(item);
                             return Ok(Value::Void);
                         } else {
                             return Err(format!("Метод 'Добавить' вызван не у массива"));
@@ -255,10 +258,10 @@ impl Interpreter {
                         let val = self.env.get(name);
                         
                         if let Value::Array(arr) = val {
-                            return Ok(Value::Bool(arr.contains(&item)));
+                            return Ok(Value::Bool(arr.borrow().contains(&item)));
                         } else if let Value::String(str) = val &&
                             let Value::String(sub_str) = item {
-                            return Ok(Value::Bool(str.contains(&sub_str)))
+                            return Ok(Value::Bool(str.contains(sub_str.as_str())))
                         } else {
                             return Err(format!("Метод 'Добавить' вызван не у массива"));
                         }
@@ -270,16 +273,16 @@ impl Interpreter {
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
                     (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
-                    (Value::Array(arr), "Длинна") => Ok(Value::Int(arr.len() as i64)),
+                    (Value::Array(arr), "Длинна") => Ok(Value::Int(arr.borrow().len() as i64)),
                     _ => Err(format!("Метод {} не реализован", method))
                 }
             }
             Expr::Array(elems) => {
-                let mut values = Vec::new();
+                let mut values = Vec::with_capacity(elems.len());
                 for e in elems {
                     values.push(self.eval_expr(e)?);
                 }
-                Ok(Value::Array(values))
+                Ok(Value::Array(Rc::new(RefCell::new(values))))
             }
             Expr::Index { target, index } => {
                 let target_val = self.eval_expr(target)?;
@@ -287,6 +290,7 @@ impl Interpreter {
 
                 match (target_val, index_val) {
                     (Value::Array(arr), Value::Int(idx)) => {
+                        let arr = arr.borrow();
                         let i = idx as usize;
                         if i >= arr.len() {
                             return Err(format!("Индекс массива вне границ: длина {}, индекс {}", arr.len(), i));
@@ -385,7 +389,8 @@ impl Interpreter {
             (Value::Bool(l), Value::Bool(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
             (Value::Bool(l), Value::Bool(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
 
-            (Value::String(l), Value::String(r), BinOp::Plus) => Ok(Value::String(format!("{}{}", l, r))),
+            (Value::String(l), Value::String(r), BinOp::Plus) => Ok(Value::String(
+                    Rc::new(format!("{}{}", l, r)))),
             (Value::String(l), Value::String(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
             (Value::String(l), Value::String(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
 
@@ -423,7 +428,7 @@ impl Interpreter {
             if let Ok(i) = input.parse::<i64>() {
                 Ok(Value::Int(i))
             } else {
-                Ok(Value::String(input.to_string()))
+                Ok(Value::String(Rc::new(input.to_string())))
             }
         }
         _ => Err(format!("Неизвестная встроенная функция: {}", name)),
@@ -440,7 +445,7 @@ impl Interpreter {
         if let Some(first) = iter.next() {
             if let Value::String(fmt) = first {
                 if fmt.contains("{}") {
-                    let mut res = fmt.clone();
+                    let mut res = fmt.to_string();
                     for v in iter {
                         res = res.replacen("{}", &v.to_string(), 1);
                     }

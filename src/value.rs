@@ -1,20 +1,22 @@
 use std::fmt;
 use crate::ast::Expr; 
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Void,
     Closure {
         param: String,
-        body: Expr,
-        env: Vec<HashMap<String, Value>> 
+        body: Expr, 
+        env: Rc<Vec<HashMap<String, Value>>> 
     },
     Int(i64),
     Float(f64),
     Bool(bool),
-    String(String),
-    Array(Vec<Value>),
+    String(Rc<String>), 
+    Array(Rc<RefCell<Vec<Value>>>), 
 }
 
 impl fmt::Display for Value {
@@ -26,7 +28,7 @@ impl fmt::Display for Value {
             Self::Int(i) => write!(f, "{}", i),
             Self::Bool(b) => write!(f, "{}", b),
             Self::String(s) => write!(f, "{}", s),
-            Self::Array(a) => write!(f, "{:?}", a)
+            Self::Array(a) => write!(f, "{:?}", a.borrow())
         }
     }
 }
@@ -54,7 +56,7 @@ impl Value {
         }
     }
 
-    pub fn expect_string(&self) -> Result<String, String> {
+    pub fn expect_string(&self) -> Result<Rc<String>, String> {
         match self {
             Value::String(v) => Ok(v.clone()),
             _ => Err(format!("Ожидалась Строка, получено {}", self)),
@@ -69,5 +71,5 @@ pub trait IntoValue {
 impl IntoValue for i64 { fn into_value(self) -> Value { Value::Int(self) } }
 impl IntoValue for f64 { fn into_value(self) -> Value { Value::Float(self) } }
 impl IntoValue for bool { fn into_value(self) -> Value { Value::Bool(self) } }
-impl IntoValue for String { fn into_value(self) -> Value { Value::String(self) } }
+impl IntoValue for String { fn into_value(self) -> Value { Value::String(Rc::new(self)) } }
 impl IntoValue for () { fn into_value(self) -> Value { Value::Void } }

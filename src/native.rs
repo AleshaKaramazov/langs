@@ -58,4 +58,7 @@ pub trait FromValue: Sized {
 impl FromValue for i64 { fn from_value(v: &Value) -> Result<Self, String> { v.expect_int() } }
 impl FromValue for f64 { fn from_value(v: &Value) -> Result<Self, String> { v.expect_float() } }
 impl FromValue for bool { fn from_value(v: &Value) -> Result<Self, String> { v.expect_bool() } }
-impl FromValue for String { fn from_value(v: &Value) -> Result<Self, String> { v.expect_string() } }
+impl FromValue for String { fn from_value(v: &Value) -> Result<Self, String> { 
+        v.expect_string().map(|rc_s| (*rc_s).clone()) 
+    } 
+}
