@@ -346,6 +346,8 @@ impl TypeChecker {
                         }
                         Ok(Type::Int)
                     }
+                    (Type::String, "КончаетсяНа") => Ok(Type::Bool),
+                    (Type::String, "НачинаетсяС") => Ok(Type::Bool),
                     (Type::Array(_), "Длинна") => Ok(Type::Int),
                     (Type::Array(_), "Содержит") | (Type::String, "Содержит") => {
                         if args.len() != 1 {

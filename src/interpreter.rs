@@ -289,6 +289,28 @@ impl Interpreter {
                         } else {
                             return Err("Метод 'Добавить' вызван не у массива".to_string());
                         }
+                } else if method == "КончаетсяНа" && 
+                    let Expr::Var(name) = &**target {
+                    let item = self.eval_expr(&args[0])?;
+                    let val = self.env.get(name);
+
+                    if let Value::String(str) = val 
+                        && let Value::String(sub_str) = item {
+                        return Ok(Value::Bool(str.ends_with(sub_str.as_ref())));
+                    } else {
+                        return Err("Метод 'КончаетсяНа' вызван не у строки".to_string())
+                    }
+                } else if method == "НачинаетсяС" && 
+                    let Expr::Var(name) = &**target {
+                    let item = self.eval_expr(&args[0])?;
+                    let val = self.env.get(name);
+
+                    if let Value::String(str) = val 
+                        && let Value::String(sub_str) = item {
+                        return Ok(Value::Bool(str.starts_with(sub_str.as_ref())));
+                    } else {
+                        return Err("Метод 'НачинаестсяС' вызван не у строки".to_string())
+                    }
                 }
 
                 let val = self.eval_expr(target)?;

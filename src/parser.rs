@@ -31,7 +31,6 @@ impl<'a> Parser<'a> {
         self.expect(Token::Algorithm);
 
         let name = self.consume_ident();
-        self.advance();
 
         let mut ret_type = Type::Void;
         if self.current == Token::Arrow {
@@ -166,7 +165,6 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> Stmt {
         self.advance();
         let name = self.consume_ident();
-        self.advance();
 
         let mut ty = Type::Infer;
         if self.current == Token::Colon {
@@ -252,7 +250,6 @@ impl<'a> Parser<'a> {
         self.advance();
         let var = self.consume_ident();
 
-        self.advance();
         self.expect(Token::From);
         let start = self.parse_expr();
         let cont = if self.current == Token::Equal {
@@ -288,7 +285,6 @@ impl<'a> Parser<'a> {
         self.expect(Token::LParen);
         let var = self.consume_ident();
 
-        self.advance();
         self.expect(Token::RParen);
         self.expect(Token::В);
 
