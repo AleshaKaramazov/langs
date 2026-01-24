@@ -104,11 +104,12 @@ impl<'a> Lexer<'a> {
             return self.read_string();
         } else if ch == '\'' {
             self.input.next();
-            if let Some(ch) = self.input.next() &&
-                self.match_next('\'') {
+            if let Some(ch) = self.input.next()
+                && self.match_next('\'')
+            {
                 return Token::Char(ch);
             } else {
-                panic!("'.+' - значит Символьный тип, скобки должны содержать 1 символ") 
+                panic!("'.+' - значит Символьный тип, скобки должны содержать 1 символ")
             }
         }
 
@@ -362,7 +363,6 @@ impl<'a> Lexer<'a> {
             "если" | "Если" => Token::If,
             "то" => Token::Then,
             "иначе" | "Иначе" => Token::Else,
-            
 
             "пока" => Token::While,
             "для_" => Token::For,

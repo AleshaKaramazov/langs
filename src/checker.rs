@@ -288,13 +288,15 @@ impl TypeChecker {
                         }
                         if (l_ty == Type::Int && r_ty == Type::Int)
                             || (l_ty == Type::Unknown && r_ty == Type::Int)
-                            || (r_ty == Type::Unknown && l_ty == Type::Int) {
+                            || (r_ty == Type::Unknown && l_ty == Type::Int)
+                        {
                             Ok(Type::Int)
                         } else if (l_ty == Type::Float && r_ty == Type::Float)
-                            || (l_ty == Type::Float && r_ty == Type::Int) 
+                            || (l_ty == Type::Float && r_ty == Type::Int)
                             || (r_ty == Type::Float && l_ty == Type::Int)
                             || (l_ty == Type::Unknown && r_ty == Type::Float)
-                            || (r_ty == Type::Unknown && l_ty == Type::Float) {
+                            || (l_ty == Type::Float && r_ty == Type::Unknown)
+                        {
                             Ok(Type::Float)
                         } else {
                             Err(format!(
@@ -311,8 +313,9 @@ impl TypeChecker {
                         }
                     }
                     BinOp::Less | BinOp::Greater | BinOp::LessOrEqual | BinOp::GreaterOrEqual => {
-                        if matches!(l_ty, Type::Int | Type::Float | Type::Unknown) 
-                            && matches!(r_ty, Type::Int | Type::Float | Type::Unknown) {
+                        if matches!(l_ty, Type::Int | Type::Float | Type::Unknown)
+                            && matches!(r_ty, Type::Int | Type::Float | Type::Unknown)
+                        {
                             Ok(Type::Bool)
                         } else {
                             Err("Сравнение больше/меньше только для чисел".into())
@@ -355,8 +358,12 @@ impl TypeChecker {
                     }
                     (Type::String, "КончаетсяНа") => Ok(Type::Bool),
                     (Type::String, "НачинаетсяС") => Ok(Type::Bool),
-                    (Type::String, "РазделитьПо") => Ok(Type::Array(Box::new(Type::String))),
-                    (Type::String, "РазделитьПоПробелам") => Ok(Type::Array(Box::new(Type::String))),
+                    (Type::String, "РазделитьПо") => {
+                        Ok(Type::Array(Box::new(Type::String)))
+                    }
+                    (Type::String, "РазделитьПоПробелам") => {
+                        Ok(Type::Array(Box::new(Type::String)))
+                    }
                     (Type::Array(_), "Длинна") => Ok(Type::Int),
                     (Type::Array(_), "Содержит") | (Type::String, "Содержит") => {
                         if args.len() != 1 {

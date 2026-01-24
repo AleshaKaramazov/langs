@@ -33,7 +33,6 @@ pub fn convert_val<T: FromValue>(v: &Value) -> Result<T, String> {
     T::from_value(v)
 }
 
-
 #[macro_export]
 macro_rules! bind_native {
     ($registry:expr, $name:expr, || $body:block) => {
@@ -52,7 +51,7 @@ macro_rules! bind_native {
                     .ok_or(format!("Недостаточно аргументов для {}", $name))?;
                 let $arg_name: $arg_type = $crate::native::convert_val(&next_val)?;
             )*
-            
+
             let result = $body;
             use $crate::value::IntoValue;
             Ok(result.into_value())

@@ -572,8 +572,7 @@ impl<'a> Parser<'a> {
                             target: Box::new(Expr::Var(n)),
                             index: Box::new(index),
                         }
-                    } 
-                    else {
+                    } else {
                         panic!("Ожидалось ( после '!'");
                     }
                 } else if self.current == Token::LBracket {
@@ -634,7 +633,7 @@ impl<'a> Parser<'a> {
                             }
                         }
                         self.expect(Token::RParen);
-                    } 
+                    }
                     Expr::NativeCall { path, args }
                 } else {
                     let expr = self.parse_primary();

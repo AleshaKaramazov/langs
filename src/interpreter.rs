@@ -21,7 +21,7 @@ impl Interpreter {
     pub fn new() -> Self {
         let mut native = NativeRegistry::new();
         Self::math_module(&mut native);
-        
+
         Self {
             env: Env::new(),
             functions: HashMap::new(),
@@ -34,9 +34,8 @@ impl Interpreter {
             if exp < 0 { 0 } else { base.pow(exp as u32) }
         });
 
-        bind_native!(native, "ПИ", || {std::f64::consts::PI});
+        bind_native!(native, "ПИ", || { std::f64::consts::PI });
         bind_native!(native, "Корень2", |val: f64| { val.sqrt() });
-         
     }
 
     pub fn run(&mut self, prog: &Program) -> RuntimeResult<()> {
@@ -121,9 +120,10 @@ impl Interpreter {
                     if let Some(r) = self.exec_block(then_body)? {
                         return Ok(Some(r));
                     }
-                } else if let Some(else_b) = else_body 
-                    && let Some(r) = self.exec_block(else_b)? {
-                        return Ok(Some(r));
+                } else if let Some(else_b) = else_body
+                    && let Some(r) = self.exec_block(else_b)?
+                {
+                    return Ok(Some(r));
                 }
                 Ok(None)
             }
@@ -270,17 +270,18 @@ impl Interpreter {
                         }
                         return Ok(Value::Array(Rc::new(RefCell::new(res_arr))));
                     }
-                } else if method == "Добавить" &&
-                    let Expr::Var(name) = &**target {
-                        let item = self.eval_expr(&args[0])?;
-                        let val = self.env.get(name);
+                } else if method == "Добавить"
+                    && let Expr::Var(name) = &**target
+                {
+                    let item = self.eval_expr(&args[0])?;
+                    let val = self.env.get(name);
 
-                        if let Value::Array(arr_rc) = val {
-                            arr_rc.borrow_mut().push(item);
-                            return Ok(Value::Void);
-                        } else {
-                            return Err("Метод 'Добавить' вызван не у массива".to_string());
-                        }
+                    if let Value::Array(arr_rc) = val {
+                        arr_rc.borrow_mut().push(item);
+                        return Ok(Value::Void);
+                    } else {
+                        return Err("Метод 'Добавить' вызван не у массива".to_string());
+                    }
                 } else if method == "Содержит" {
                     let target_val = self.eval_expr(target)?;
                     let arg = self.eval_expr(&args[0])?;
@@ -293,7 +294,9 @@ impl Interpreter {
                             return Ok(Value::Bool(s.contains(pr)));
                         }
                         _ => {
-                            return Err("Метод 'НачинаетсяС' работает только со строками".to_string());
+                            return Err(
+                                "Метод 'НачинаетсяС' работает только со строками".to_string()
+                            );
                         }
                     }
                 } else if method == "НачинаетсяС" {
@@ -308,7 +311,9 @@ impl Interpreter {
                             return Ok(Value::Bool(s.starts_with(pr)));
                         }
                         _ => {
-                            return Err("Метод 'НачинаетсяС' работает только со строками".to_string());
+                            return Err(
+                                "Метод 'НачинаетсяС' работает только со строками".to_string()
+                            );
                         }
                     }
                 } else if method == "РазделитьПо" {
@@ -319,30 +324,35 @@ impl Interpreter {
                         (Value::String(s), Value::String(c)) => {
                             let array: Vec<Value> = s
                                 .split(c.as_ref())
-                                .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                                .map(|x| Value::String(Rc::new(x.to_string())))
+                                .collect();
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
                         }
                         (Value::String(s), Value::Char(c)) => {
                             let array: Vec<Value> = s
                                 .split(c)
-                                .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                                .map(|x| Value::String(Rc::new(x.to_string())))
+                                .collect();
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
                         }
                         _ => {
-                            return Err("Метод 'РазделитьПо' работает только со строками".to_string());
+                            return Err(
+                                "Метод 'РазделитьПо' работает только со строками".to_string()
+                            );
                         }
                     }
-                } 
+                }
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
                     (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
                     (Value::String(s), "РазделитьПоПробелам") => {
                         let array: Vec<Value> = s
                             .split_whitespace()
-                            .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                            .map(|x| Value::String(Rc::new(x.to_string())))
+                            .collect();
                         Ok(Value::Array(Rc::new(RefCell::new(array))))
                     }
-                        
+
                     (Value::Array(arr), "Длинна") => {
                         Ok(Value::Int(arr.borrow().len() as i64))
                     }
@@ -417,7 +427,16 @@ impl Interpreter {
         }
     }
 
-    fn apply_binary_op(&self, left: Value, right: Value, op: BinOp) -> RuntimeResult<Value> {
+    fn apply_binary_op(
+        &self,
+        mut left: Value,
+        mut right: Value,
+        op: BinOp,
+    ) -> RuntimeResult<Value> {
+        if matches!(left, Value::Int(_)) && matches!(right, Value::Float(_)) {
+            //the float type is always on the right side
+            std::mem::swap(&mut left, &mut right);
+        }
         match (left, right, op) {
             (Value::Int(l), Value::Int(r), BinOp::Plus) => Ok(Value::Int(l + r)),
             (Value::Int(l), Value::Int(r), BinOp::Sub) => Ok(Value::Int(l - r)),
@@ -472,6 +491,32 @@ impl Interpreter {
             (Value::Float(l), Value::Float(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
             (Value::Float(l), Value::Float(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
 
+            //variations of float and int operations
+            (Value::Float(l), Value::Int(r), BinOp::Plus) => Ok(Value::Float(l + r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::Sub) => Ok(Value::Float(l - r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::Mult) => Ok(Value::Float(l * r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::Div) => {
+                if r == 0 {
+                    return Err("Деление на ноль!".to_string());
+                }
+                Ok(Value::Float(l / r as f64))
+            }
+            (Value::Float(l), Value::Int(r), BinOp::Mod) => {
+                if r == 0 {
+                    return Err("Деление на ноль (остаток)!".to_string());
+                }
+                Ok(Value::Float(l % r as f64))
+            }
+
+            (Value::Float(l), Value::Int(r), BinOp::Greater) => Ok(Value::Bool(l > r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::Less) => Ok(Value::Bool(l < r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::Equal) => Ok(Value::Bool(l == r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l != r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::GreaterOrEqual) => {
+                Ok(Value::Bool(l >= r as f64))
+            }
+            (Value::Float(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r as f64)),
+            //=================
             (Value::Bool(l), Value::Bool(r), BinOp::And) => Ok(Value::Bool(l && r)),
             (Value::Bool(l), Value::Bool(r), BinOp::Or) => Ok(Value::Bool(l || r)),
             (Value::Bool(l), Value::Bool(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
@@ -484,7 +529,7 @@ impl Interpreter {
             (Value::String(l), Value::String(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
 
             (l, r, op) => Err(format!(
-                "Невозможно выполнить операцию '{:?}' над типами {} и {}",
+                "Невозможно выполнить операцию '{:?}' над типами {:?} и {:?}",
                 op, l, r
             )),
         }
@@ -519,8 +564,12 @@ impl Interpreter {
                     .map_err(|e| e.to_string())?;
                 let input = input.trim();
 
-                if let Ok(i) = input.parse::<i64>() {
+                if let Ok(f) = input.parse::<f64>() {
+                    Ok(Value::Float(f))
+                } else if let Ok(i) = input.parse::<i64>() {
                     Ok(Value::Int(i))
+                } else if let Ok(c) = input.parse::<char>() {
+                    Ok(Value::Char(c))
                 } else {
                     Ok(Value::String(Rc::new(input.to_string())))
                 }
