@@ -1,5 +1,6 @@
 use std::fmt;
-use crate::ast::Expr; 
+use crate::ast::Expr;
+use crate::native::FromValue; 
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -9,7 +10,7 @@ pub enum Value {
     Void,
     Closure {
         param: String,
-        body: Expr, 
+        body: Rc<Expr>, 
         env: Rc<Vec<HashMap<String, Value>>> 
     },
     Int(i64),
@@ -73,3 +74,9 @@ impl IntoValue for f64 { fn into_value(self) -> Value { Value::Float(self) } }
 impl IntoValue for bool { fn into_value(self) -> Value { Value::Bool(self) } }
 impl IntoValue for String { fn into_value(self) -> Value { Value::String(Rc::new(self)) } }
 impl IntoValue for () { fn into_value(self) -> Value { Value::Void } }
+
+impl FromValue for Rc<String> {
+    fn from_value(v: &Value) -> Result<Self, String> {
+        v.expect_string()
+    }
+}

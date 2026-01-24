@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
@@ -82,7 +84,7 @@ pub enum Expr {
     Lambda {
         param: String,
         param_ty: Type,
-        body: Box<Expr>,
+        body: Rc<Expr>,
     },
     NativeCall {
         path: String,

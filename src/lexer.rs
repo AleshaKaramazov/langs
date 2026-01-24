@@ -282,26 +282,25 @@ impl<'a> Lexer<'a> {
     fn read_number(&mut self) -> Token {
         let mut s = String::new();
         let mut is_float = false;
-        
+
         while let Some(&ch) = self.input.peek() {
             if ch.is_ascii_digit() {
                 s.push(self.input.next().unwrap());
             } else if ch == '.' {
-                if is_float { break; }
+                if is_float {
+                    break;
+                }
 
                 let mut lookahead = self.input.clone();
                 lookahead.next(); 
 
                 match lookahead.peek() {
-                    Some(&'.') => {
-                        break;
-                    }
                     Some(&next_ch) if next_ch.is_ascii_digit() => {
                         is_float = true;
                         s.push(self.input.next().unwrap());
                     }
                     _ => {
-                        break;
+                        break; 
                     }
                 }
             } else {

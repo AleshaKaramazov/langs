@@ -195,11 +195,11 @@ impl Interpreter {
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::String(s) => Ok(Value::String(Rc::new(s.clone()))),
             Expr::Lambda { param, body, .. } => {
-                    Ok(Value::Closure {
-                        param: param.clone(),
-                        body: *body.clone(),
-                        env: self.env.snapshot(),
-                    })
+                Ok(Value::Closure {
+                    param: param.clone(),
+                    body: body.clone(),
+                    env: self.env.snapshot(),
+                })
             }
             Expr::NativeCall { path, args } => {
                 let mut evaluated_args = Vec::new();

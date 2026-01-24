@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::lexer::{Lexer, Token};
 use crate::ast::*;
 
@@ -28,10 +30,7 @@ impl<'a> Parser<'a> {
     pub fn parse_algorithm(&mut self) -> Algorithm {
         self.expect(Token::Algorithm);
         
-        let name = match &self.current {
-            Token::Ident(s) => s.clone(),
-            _ => panic!("Ожидалось имя алгоритма"),
-        };
+        let name = self.consume_ident();
         self.advance();
 
         let mut ret_type = Type::Void;
@@ -166,10 +165,7 @@ impl<'a> Parser<'a> {
 
     fn parse_let(&mut self) -> Stmt {
         self.advance(); 
-        let name = match &self.current {
-            Token::Ident(s) => s.clone(),
-            _ => panic!("Ожидалось имя переменной"),
-        };
+        let name = self.consume_ident();
         self.advance();
 
         let mut ty = Type::Infer;
@@ -247,10 +243,8 @@ impl<'a> Parser<'a> {
 
     fn parse_for(&mut self) -> Stmt {
         self.advance();
-        let var = match &self.current {
-            Token::Ident(s) => s.clone(),
-            _ => panic!("Ожидалось имя переменной цикла"),
-        };
+        let var = self.consume_ident();
+
         self.advance();
         self.expect(Token::From);
         let start = self.parse_expr();
@@ -275,10 +269,8 @@ impl<'a> Parser<'a> {
         self.expect(Token::ForAll);
         self.expect(Token::Всех);
         self.expect(Token::LParen);
-        let var = match &self.current {
-            Token::Ident(s) => s.clone(),
-            _ => panic!("Ожидалось имя переменной"),
-        };
+        let var = self.consume_ident();
+
         self.advance();
         self.expect(Token::RParen);
         self.expect(Token::В);
@@ -337,6 +329,15 @@ impl<'a> Parser<'a> {
         self.advance();
         t
     }
+    fn consume_ident(&mut self) -> String {
+        let token = std::mem::replace(&mut self.current, Token::Eof);
+        self.advance(); 
+        match token {
+            Token::Ident(s) => s,
+            _ => panic!("Ожидался идентификатор, получено {:?}", token),
+        }
+    }
+
 
     pub fn parse_program(&mut self) -> Program {
         let mut algorithms = Vec::new();
@@ -443,10 +444,7 @@ impl<'a> Parser<'a> {
             Token::Pipe => {
                 self.advance(); 
                 
-                let param_name = match &self.current {
-                    Token::Ident(s) => s.clone(),
-                    _ => panic!("Ожидалось имя аргумента лямбды"),
-                };
+                let param_name = self.consume_ident();
                 self.advance();
 
                 self.expect(Token::Colon);
@@ -459,7 +457,7 @@ impl<'a> Parser<'a> {
                 Expr::Lambda {
                     param: param_name,
                     param_ty: param_ty,
-                    body: Box::new(body),
+                    body: Rc::new(body), 
                 }
             }
             Token::Not => {
