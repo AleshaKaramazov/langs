@@ -30,8 +30,10 @@ pub enum Token {
     TypeFloat,
     TypeBool,
     TypeString,
+    TypeChar,
 
     Int(i64),
+    Char(char),
     Float(f64),
     Bool(bool),
     String(String),
@@ -100,6 +102,14 @@ impl<'a> Lexer<'a> {
 
         if ch == '"' {
             return self.read_string();
+        } else if ch == '\'' {
+            self.input.next();
+            if let Some(ch) = self.input.next() &&
+                self.match_next('\'') {
+                return Token::Char(ch);
+            } else {
+                panic!("'.+' - значит Символьный тип, скобки должны содержать 1 символ") 
+            }
         }
 
         if ch.is_ascii_digit() {
@@ -352,6 +362,7 @@ impl<'a> Lexer<'a> {
             "если" | "Если" => Token::If,
             "то" => Token::Then,
             "иначе" | "Иначе" => Token::Else,
+            
 
             "пока" => Token::While,
             "для_" => Token::For,
@@ -366,6 +377,7 @@ impl<'a> Lexer<'a> {
             "Цел" => Token::TypeInt,
             "Десятич" => Token::TypeFloat,
             "Лог" => Token::TypeBool,
+            "Символ" => Token::TypeChar,
             "Строка" => Token::TypeString,
 
             "не" | "Не" => {

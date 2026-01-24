@@ -6,6 +6,7 @@ pub enum Type {
     Float,
     Bool,
     String,
+    Char,
     Function(Box<Type>, Box<Type>),
     Array(Box<Type>),
     Void,
@@ -92,6 +93,7 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Var(String),
+    Char(char),
     Lambda {
         param: String,
         param_ty: Type,

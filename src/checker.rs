@@ -273,6 +273,7 @@ impl TypeChecker {
             }
             Expr::Int(_) => Ok(Type::Int),
             Expr::Bool(_) => Ok(Type::Bool),
+            Expr::Char(_) => Ok(Type::Char),
             Expr::Float(_) => Ok(Type::Float),
             Expr::String(_) => Ok(Type::String),
             Expr::Var(name) => self.env.lookup(name),

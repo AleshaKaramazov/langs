@@ -15,6 +15,7 @@ pub enum Value {
     },
     Int(i64),
     Float(f64),
+    Char(char),
     Bool(bool),
     String(Rc<String>),
     Array(Rc<RefCell<Vec<Value>>>),
@@ -24,6 +25,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Closure { .. } => write!(f, "<функция>"),
+            Self::Char(c) => write!(f, "{}", c),
             Self::Void => write!(f, "пусто"),
             Self::Float(fl) => write!(f, "{}", fl),
             Self::Int(i) => write!(f, "{}", i),

@@ -217,6 +217,7 @@ impl Interpreter {
         match expr {
             Expr::Int(i) => Ok(Value::Int(*i)),
             Expr::Float(f) => Ok(Value::Float(*f)),
+            Expr::Char(c) => Ok(Value::Char(*c)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::String(s) => Ok(Value::String(Rc::new(s.clone()))),
             Expr::Lambda { param, body, .. } => Ok(Value::Closure {
@@ -294,9 +295,14 @@ impl Interpreter {
                     let item = self.eval_expr(&args[0])?;
                     let val = self.env.get(name);
 
-                    if let Value::String(str) = val 
-                        && let Value::String(sub_str) = item {
-                        return Ok(Value::Bool(str.ends_with(sub_str.as_ref())));
+                    if let Value::String(str) = val {
+                        if let Value::String(star) = item {
+                            return Ok(Value::Bool(str.ends_with(star.as_ref())));
+                        } else if let Value::Char(c) = item {
+                            return Ok(Value::Bool(str.ends_with(c)));
+                        } else {
+                            return Err("Метод 'КончаетсяНа' принимает либо строку, либо символ".to_string())
+                        };
                     } else {
                         return Err("Метод 'КончаетсяНа' вызван не у строки".to_string())
                     }
@@ -305,9 +311,14 @@ impl Interpreter {
                     let item = self.eval_expr(&args[0])?;
                     let val = self.env.get(name);
 
-                    if let Value::String(str) = val 
-                        && let Value::String(sub_str) = item {
-                        return Ok(Value::Bool(str.starts_with(sub_str.as_ref())));
+                    if let Value::String(str) = val {
+                        if let Value::String(star) = item {
+                            return Ok(Value::Bool(str.starts_with(star.as_ref())));
+                        } else if let Value::Char(c) = item {
+                            return Ok(Value::Bool(str.starts_with(c)));
+                        } else {
+                            return Err("Метод 'НачинаетсяС' принимает либо строку, либо символ".to_string())
+                        };
                     } else {
                         return Err("Метод 'НачинаестсяС' вызван не у строки".to_string())
                     }
@@ -315,20 +326,28 @@ impl Interpreter {
                         let Expr::Var(name) = &**target {
                     let item = self.eval_expr(&args[0])?;
                     let val = self.env.get(name);
-                    if let Value::String(str) = val 
-                        && let Value::String(to_spl) = item {
-                        let array: Vec<Value> = str
-                            .split(to_spl.as_ref())
-                            .map(|x| Value::String(Rc::new(x.to_string()))).collect();
-                        return Ok(Value::Array(Rc::new(RefCell::new(array))));
+                    if let Value::String(str) = val {
+                        if let Value::String(to_spl) = item {
+                            let array: Vec<Value> = str
+                                .split(to_spl.as_ref())
+                                .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                            return Ok(Value::Array(Rc::new(RefCell::new(array))));
+                        }
+                        else if let Value::Char(c) = item {
+                            let array: Vec<Value> = str
+                                .split(c)
+                                .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                            return Ok(Value::Array(Rc::new(RefCell::new(array))));
+                        }
+                        else {
+                            return Err("Метод 'Разделить по' принимает либо строку, либо символ".to_string())
+                        };
+
                     } else {
                         return Err("Метод 'Разделить по' вызван не у строки".to_string())
                     }
 
                 }
-                //  (Type::String, "РазделитьПо") => Ok(Type::Array(String)),
-                // (Type::String, "РазделитьПоПробелам"
-
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
                     (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
@@ -438,10 +457,14 @@ impl Interpreter {
             (Value::Int(l), Value::Int(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
             (Value::Int(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
 
-            (Value::Float(l), Value::Int(r), BinOp::Sub) => Ok(Value::Float(l - r as f64)),
+            (Value::Char(l), Value::Char(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
+            (Value::Char(l), Value::Char(r), BinOp::Less) => Ok(Value::Bool(l < r)),
+            (Value::Char(l), Value::Char(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::Char(l), Value::Char(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+            (Value::Char(l), Value::Char(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
+            (Value::Char(l), Value::Char(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
+
             (Value::Float(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l + r)),
-            (Value::Float(l), Value::Int(r), BinOp::Plus) => Ok(Value::Float(l + r as f64)),
-            (Value::Int(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l as f64 + r)),
             (Value::Float(l), Value::Float(r), BinOp::Sub) => Ok(Value::Float(l - r)),
             (Value::Float(l), Value::Float(r), BinOp::Mult) => Ok(Value::Float(l * r)),
             (Value::Float(l), Value::Float(r), BinOp::Div) => {

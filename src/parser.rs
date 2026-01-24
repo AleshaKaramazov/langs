@@ -346,6 +346,7 @@ impl<'a> Parser<'a> {
             Token::TypeFloat => Type::Float,
             Token::TypeBool => Type::Bool,
             Token::TypeString => Type::String,
+            Token::TypeChar => Type::Char,
             Token::Array => {
                 self.advance();
                 self.expect(Token::Less);
@@ -549,6 +550,11 @@ impl<'a> Parser<'a> {
                 self.advance();
                 e
             }
+            Token::Char(c) => {
+                let e = Expr::Char(*c);
+                self.advance();
+                e
+            }
             Token::Ident(name) => {
                 let n = name.clone();
                 self.advance();
@@ -556,7 +562,6 @@ impl<'a> Parser<'a> {
                     self.finish_call(n, false)
                 } else if self.current == Token::Bang {
                     self.advance();
-
                     if self.current == Token::LParen {
                         self.finish_call(n, true)
                     } else if self.current == Token::LBracket {
@@ -567,8 +572,17 @@ impl<'a> Parser<'a> {
                             target: Box::new(Expr::Var(n)),
                             index: Box::new(index),
                         }
-                    } else {
-                        panic!("Ожидалось ( или [ после '!'");
+                    } 
+                    else {
+                        panic!("Ожидалось ( после '!'");
+                    }
+                } else if self.current == Token::LBracket {
+                    self.advance();
+                    let index = self.parse_expr();
+                    self.expect(Token::RBracket);
+                    Expr::Index {
+                        target: Box::new(Expr::Var(n)),
+                        index: Box::new(index),
                     }
                 } else {
                     Expr::Var(n)
