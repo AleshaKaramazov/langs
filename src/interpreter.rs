@@ -276,78 +276,58 @@ impl Interpreter {
                         } else {
                             return Err("Метод 'Добавить' вызван не у массива".to_string());
                         }
-                } else if method == "Содержит" 
-                    && let Expr::Var(name) = &**target {
-                        let item = self.eval_expr(&args[0])?;
-                        let val = self.env.get(name);
+                } else if method == "Содержит" {
+                    let target_val = self.eval_expr(target)?;
+                    let arg = self.eval_expr(&args[0])?;
 
-                        if let Value::Array(arr) = val {
-                            return Ok(Value::Bool(arr.borrow().contains(&item)));
-                        } else if let Value::String(str) = val
-                            && let Value::String(sub_str) = item
-                        {
-                            return Ok(Value::Bool(str.contains(sub_str.as_str())));
-                        } else {
-                            return Err("Метод 'Добавить' вызван не у массива".to_string());
+                    match (target_val, arg) {
+                        (Value::String(s), Value::String(prefix)) => {
+                            return Ok(Value::Bool(s.contains(prefix.as_ref())));
                         }
-                } else if method == "КончаетсяНа" && 
-                    let Expr::Var(name) = &**target {
-                    let item = self.eval_expr(&args[0])?;
-                    let val = self.env.get(name);
-
-                    if let Value::String(str) = val {
-                        if let Value::String(star) = item {
-                            return Ok(Value::Bool(str.ends_with(star.as_ref())));
-                        } else if let Value::Char(c) = item {
-                            return Ok(Value::Bool(str.ends_with(c)));
-                        } else {
-                            return Err("Метод 'КончаетсяНа' принимает либо строку, либо символ".to_string())
-                        };
-                    } else {
-                        return Err("Метод 'КончаетсяНа' вызван не у строки".to_string())
+                        (Value::String(s), Value::Char(pr)) => {
+                            return Ok(Value::Bool(s.contains(pr)));
+                        }
+                        _ => {
+                            return Err("Метод 'НачинаетсяС' работает только со строками".to_string());
+                        }
                     }
-                } else if method == "НачинаетсяС" && 
-                    let Expr::Var(name) = &**target {
-                    let item = self.eval_expr(&args[0])?;
-                    let val = self.env.get(name);
+                } else if method == "НачинаетсяС" {
+                    let target_val = self.eval_expr(target)?;
+                    let arg = self.eval_expr(&args[0])?;
 
-                    if let Value::String(str) = val {
-                        if let Value::String(star) = item {
-                            return Ok(Value::Bool(str.starts_with(star.as_ref())));
-                        } else if let Value::Char(c) = item {
-                            return Ok(Value::Bool(str.starts_with(c)));
-                        } else {
-                            return Err("Метод 'НачинаетсяС' принимает либо строку, либо символ".to_string())
-                        };
-                    } else {
-                        return Err("Метод 'НачинаестсяС' вызван не у строки".to_string())
+                    match (target_val, arg) {
+                        (Value::String(s), Value::String(prefix)) => {
+                            return Ok(Value::Bool(s.starts_with(prefix.as_ref())));
+                        }
+                        (Value::String(s), Value::Char(pr)) => {
+                            return Ok(Value::Bool(s.starts_with(pr)));
+                        }
+                        _ => {
+                            return Err("Метод 'НачинаетсяС' работает только со строками".to_string());
+                        }
                     }
-                } else if method == "РазделитьПо" &&
-                        let Expr::Var(name) = &**target {
-                    let item = self.eval_expr(&args[0])?;
-                    let val = self.env.get(name);
-                    if let Value::String(str) = val {
-                        if let Value::String(to_spl) = item {
-                            let array: Vec<Value> = str
-                                .split(to_spl.as_ref())
+                } else if method == "РазделитьПо" {
+                    let target_val = self.eval_expr(target)?;
+                    let arg = self.eval_expr(&args[0])?;
+
+                    match (target_val, arg) {
+                        (Value::String(s), Value::String(c)) => {
+                            let array: Vec<Value> = s
+                                .split(c.as_ref())
                                 .map(|x| Value::String(Rc::new(x.to_string()))).collect();
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
                         }
-                        else if let Value::Char(c) = item {
-                            let array: Vec<Value> = str
+                        (Value::String(s), Value::Char(c)) => {
+                            let array: Vec<Value> = s
                                 .split(c)
                                 .map(|x| Value::String(Rc::new(x.to_string()))).collect();
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
                         }
-                        else {
-                            return Err("Метод 'Разделить по' принимает либо строку, либо символ".to_string())
-                        };
-
-                    } else {
-                        return Err("Метод 'Разделить по' вызван не у строки".to_string())
+                        _ => {
+                            return Err("Метод 'РазделитьПо' работает только со строками".to_string());
+                        }
                     }
-
-                }
+                } 
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
                     (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
