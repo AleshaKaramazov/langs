@@ -1,35 +1,35 @@
-use std::fmt;
 use crate::ast::Expr;
-use crate::native::FromValue; 
-use std::collections::HashMap;
-use std::rc::Rc;
+use crate::native::FromValue;
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::fmt;
+use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Void,
     Closure {
         param: String,
-        body: Rc<Expr>, 
-        env: Rc<Vec<HashMap<String, Value>>> 
+        body: Rc<Expr>,
+        env: Rc<Vec<HashMap<String, Value>>>,
     },
     Int(i64),
     Float(f64),
     Bool(bool),
-    String(Rc<String>), 
-    Array(Rc<RefCell<Vec<Value>>>), 
+    String(Rc<String>),
+    Array(Rc<RefCell<Vec<Value>>>),
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Closure { .. } => write!(f, "<функция>"), 
+            Value::Closure { .. } => write!(f, "<функция>"),
             Self::Void => write!(f, "пусто"),
             Self::Float(fl) => write!(f, "{}", fl),
             Self::Int(i) => write!(f, "{}", i),
             Self::Bool(b) => write!(f, "{}", b),
             Self::String(s) => write!(f, "{}", s),
-            Self::Array(a) => write!(f, "{:?}", a.borrow())
+            Self::Array(a) => write!(f, "{:?}", a.borrow()),
         }
     }
 }
@@ -69,11 +69,31 @@ pub trait IntoValue {
     fn into_value(self) -> Value;
 }
 
-impl IntoValue for i64 { fn into_value(self) -> Value { Value::Int(self) } }
-impl IntoValue for f64 { fn into_value(self) -> Value { Value::Float(self) } }
-impl IntoValue for bool { fn into_value(self) -> Value { Value::Bool(self) } }
-impl IntoValue for String { fn into_value(self) -> Value { Value::String(Rc::new(self)) } }
-impl IntoValue for () { fn into_value(self) -> Value { Value::Void } }
+impl IntoValue for i64 {
+    fn into_value(self) -> Value {
+        Value::Int(self)
+    }
+}
+impl IntoValue for f64 {
+    fn into_value(self) -> Value {
+        Value::Float(self)
+    }
+}
+impl IntoValue for bool {
+    fn into_value(self) -> Value {
+        Value::Bool(self)
+    }
+}
+impl IntoValue for String {
+    fn into_value(self) -> Value {
+        Value::String(Rc::new(self))
+    }
+}
+impl IntoValue for () {
+    fn into_value(self) -> Value {
+        Value::Void
+    }
+}
 
 impl FromValue for Rc<String> {
     fn from_value(v: &Value) -> Result<Self, String> {

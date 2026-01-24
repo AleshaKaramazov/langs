@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use crate::lexer::{Lexer, Token};
 use crate::ast::*;
+use crate::lexer::{Lexer, Token};
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -29,7 +29,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse_algorithm(&mut self) -> Algorithm {
         self.expect(Token::Algorithm);
-        
+
         let name = self.consume_ident();
         self.advance();
 
@@ -43,20 +43,16 @@ impl<'a> Parser<'a> {
         if self.current == Token::Arguments {
             self.advance();
             self.expect(Token::Colon);
-            
-            loop {
-                if let Token::Ident(arg_name) = &self.current {
-                    let name = arg_name.clone();
+
+            while let Token::Ident(arg_name) = &self.current {
+                let name = arg_name.clone();
+                self.advance();
+                self.expect(Token::Colon);
+                let ty = self.parse_type();
+                args.push((name, ty));
+
+                if self.current == Token::Comma {
                     self.advance();
-                    self.expect(Token::Colon);
-                    let ty = self.parse_type();
-                    args.push((name, ty));
-                    
-                    if self.current == Token::Comma {
-                        self.advance();
-                    } else {
-                        break;
-                    }
                 } else {
                     break;
                 }
@@ -70,7 +66,12 @@ impl<'a> Parser<'a> {
             body.push(self.parse_stmt());
         }
         self.expect(Token::EndFunc);
-        Algorithm { name, args, ret_type, body }
+        Algorithm {
+            name,
+            args,
+            ret_type,
+            body,
+        }
     }
 
     fn parse_block(&mut self, end_tok: Token) -> Vec<Stmt> {
@@ -109,7 +110,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    
     fn parse_assignment_or_expr(&mut self) -> Stmt {
         let expr = self.parse_expr();
 
@@ -164,7 +164,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_let(&mut self) -> Stmt {
-        self.advance(); 
+        self.advance();
         let name = self.consume_ident();
         self.advance();
 
@@ -189,7 +189,7 @@ impl<'a> Parser<'a> {
     fn parse_if(&mut self) -> Stmt {
         self.advance();
         let cond = self.parse_expr();
-        
+
         let then_body = if self.current == Token::Begin {
             self.advance();
             self.parse_block(Token::End)
@@ -224,14 +224,21 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        Stmt::If { cond, then_body, else_if, else_body }
+        Stmt::If {
+            cond,
+            then_body,
+            else_if,
+            else_body,
+        }
     }
 
     fn parse_while(&mut self) -> Stmt {
         self.advance();
         let cond = self.parse_expr();
-        if self.current == Token::Do { self.advance(); }
-        
+        if self.current == Token::Do {
+            self.advance();
+        }
+
         let body = if self.current == Token::Begin {
             self.advance();
             self.parse_block(Token::End)
@@ -251,10 +258,14 @@ impl<'a> Parser<'a> {
         let cont = if self.current == Token::Equal {
             self.advance();
             true
-        } else {false};
+        } else {
+            false
+        };
         self.expect(Token::To);
         let end = self.parse_expr();
-        if self.current == Token::Do { self.advance(); }
+        if self.current == Token::Do {
+            self.advance();
+        }
 
         let body = if self.current == Token::Begin {
             self.advance();
@@ -262,7 +273,13 @@ impl<'a> Parser<'a> {
         } else {
             vec![self.parse_stmt()]
         };
-        Stmt::For { var, start, cont, end, body }
+        Stmt::For {
+            var,
+            start,
+            cont,
+            end,
+            body,
+        }
     }
 
     fn parse_human_for(&mut self) -> Stmt {
@@ -282,21 +299,37 @@ impl<'a> Parser<'a> {
             self.expect(Token::DotDot);
             let cont = if self.current == Token::Assign {
                 self.advance();
-                true 
-            } else {false};
+                true
+            } else {
+                false
+            };
             let end = self.parse_expr();
             self.expect(Token::RParen);
-            if self.current == Token::Do { self.advance(); }
+            if self.current == Token::Do {
+                self.advance();
+            }
             let body = self.parse_block_helper();
-            Stmt::For { var, start, cont, end, body }
+            Stmt::For {
+                var,
+                start,
+                cont,
+                end,
+                body,
+            }
         } else if self.current == Token::Массиве {
             self.advance();
             self.expect(Token::LParen);
             let collection = self.parse_expr();
             self.expect(Token::RParen);
-            if self.current == Token::Do { self.advance(); }
+            if self.current == Token::Do {
+                self.advance();
+            }
             let body = self.parse_block_helper();
-            Stmt::ForEach { var, collection, body }
+            Stmt::ForEach {
+                var,
+                collection,
+                body,
+            }
         } else {
             panic!("Ожидалось 'диапазоне' или 'массиве'");
         }
@@ -318,11 +351,11 @@ impl<'a> Parser<'a> {
             Token::TypeBool => Type::Bool,
             Token::TypeString => Type::String,
             Token::Array => {
-                self.advance(); 
-                self.expect(Token::Less); 
-                let inner_type = self.parse_type(); 
-                self.expect(Token::Greater); 
-                return Type::Array(Box::new(inner_type))
+                self.advance();
+                self.expect(Token::Less);
+                let inner_type = self.parse_type();
+                self.expect(Token::Greater);
+                return Type::Array(Box::new(inner_type));
             }
             _ => panic!("Неизвестный тип"),
         };
@@ -331,13 +364,12 @@ impl<'a> Parser<'a> {
     }
     fn consume_ident(&mut self) -> String {
         let token = std::mem::replace(&mut self.current, Token::Eof);
-        self.advance(); 
+        self.advance();
         match token {
             Token::Ident(s) => s,
             _ => panic!("Ожидался идентификатор, получено {:?}", token),
         }
     }
-
 
     pub fn parse_program(&mut self) -> Program {
         let mut algorithms = Vec::new();
@@ -348,7 +380,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Expr {
-        let mut left = self.parse_and(); 
+        let mut left = self.parse_and();
         while self.current == Token::Or {
             self.advance();
             let right = self.parse_and();
@@ -377,13 +409,15 @@ impl<'a> Parser<'a> {
 
     fn parse_comparison(&mut self) -> Expr {
         let mut left = self.parse_arithmetic();
-        while matches!(self.current, 
-            Token::Equal 
-            | Token::NotEqual 
-            | Token::Less 
-            | Token::Greater
-            | Token::LessOrEqual 
-            | Token::GreaterOrEqual) {
+        while matches!(
+            self.current,
+            Token::Equal
+                | Token::NotEqual
+                | Token::Less
+                | Token::Greater
+                | Token::LessOrEqual
+                | Token::GreaterOrEqual
+        ) {
             let op = match self.current {
                 Token::Equal => BinOp::Equal,
                 Token::NotEqual => BinOp::NotEqual,
@@ -407,7 +441,11 @@ impl<'a> Parser<'a> {
     fn parse_arithmetic(&mut self) -> Expr {
         let mut left = self.parse_term();
         while matches!(self.current, Token::Plus | Token::Minus) {
-            let op = if self.current == Token::Plus { BinOp::Plus } else { BinOp::Sub };
+            let op = if self.current == Token::Plus {
+                BinOp::Plus
+            } else {
+                BinOp::Sub
+            };
             self.advance();
             let right = self.parse_term();
             left = Expr::Binary {
@@ -442,22 +480,22 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Expr {
         let mut expr = match &self.current {
             Token::Pipe => {
-                self.advance(); 
-                
+                self.advance();
+
                 let param_name = self.consume_ident();
                 self.advance();
 
                 self.expect(Token::Colon);
                 let param_ty = self.parse_type();
 
-                self.expect(Token::Pipe); 
-                
-                let body = self.parse_expr(); 
+                self.expect(Token::Pipe);
+
+                let body = self.parse_expr();
 
                 Expr::Lambda {
                     param: param_name,
-                    param_ty: param_ty,
-                    body: Rc::new(body), 
+                    param_ty,
+                    body: Rc::new(body),
                 }
             }
             Token::Not => {
@@ -489,16 +527,16 @@ impl<'a> Parser<'a> {
             }
             Token::Array => {
                 self.advance();
-                self.expect(Token::Bang); 
+                self.expect(Token::Bang);
                 self.expect(Token::LBracket);
                 let mut elements = Vec::new();
                 if self.current != Token::RBracket {
                     loop {
                         elements.push(self.parse_expr());
-                        if self.current == Token::Comma { 
-                            self.advance(); 
-                        } else { 
-                            break; 
+                        if self.current == Token::Comma {
+                            self.advance();
+                        } else {
+                            break;
                         }
                     }
                 }
@@ -518,16 +556,15 @@ impl<'a> Parser<'a> {
             Token::Ident(name) => {
                 let n = name.clone();
                 self.advance();
-                
-                let expr = if self.current == Token::LParen {
+                if self.current == Token::LParen {
                     self.finish_call(n, false)
                 } else if self.current == Token::Bang {
                     self.advance();
-                    
+
                     if self.current == Token::LParen {
                         self.finish_call(n, true)
                     } else if self.current == Token::LBracket {
-                        self.advance(); 
+                        self.advance();
                         let index = self.parse_expr();
                         self.expect(Token::RBracket);
                         Expr::Index {
@@ -539,9 +576,7 @@ impl<'a> Parser<'a> {
                     }
                 } else {
                     Expr::Var(n)
-                };
-
-                expr
+                }
             }
             Token::LParen => {
                 self.advance();
@@ -552,17 +587,16 @@ impl<'a> Parser<'a> {
             Token::Bang => {
                 self.advance();
                 if self.current == Token::LBracket {
-                    self.advance(); 
-                let path = match &self.current {
-                    Token::String(s) => {
-                        let s = s.clone();
-                        self.advance();
-                        s
-                    }
-                    _ => {
-                        let mut p = String::new();
-                            while self.current != Token::RBracket 
-                                && self.current != Token::Eof {
+                    self.advance();
+                    let path = match &self.current {
+                        Token::String(s) => {
+                            let s = s.clone();
+                            self.advance();
+                            s
+                        }
+                        _ => {
+                            let mut p = String::new();
+                            while self.current != Token::RBracket && self.current != Token::Eof {
                                 match &self.current {
                                     Token::Ident(s) => p.push_str(s),
                                     Token::Dot => p.push('.'),
@@ -571,12 +605,12 @@ impl<'a> Parser<'a> {
                                 }
                                 self.advance();
                             }
-                        p
-                    }
-                };                    
+                            p
+                        }
+                    };
                     self.expect(Token::RBracket);
-                    
-                    self.expect(Token::LParen); 
+
+                    self.expect(Token::LParen);
                     let mut args = Vec::new();
                     if self.current != Token::RParen {
                         loop {
@@ -588,8 +622,8 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
-                    self.expect(Token::RParen); 
-                    
+                    self.expect(Token::RParen);
+
                     Expr::NativeCall { path, args }
                 } else {
                     let expr = self.parse_primary();
@@ -598,37 +632,37 @@ impl<'a> Parser<'a> {
                         right: Box::new(expr),
                     }
                 }
-            }        
+            }
             _ => panic!("Неожиданный токен в выражении: {:?}", self.current),
         };
         while self.current == Token::Dot {
-                self.advance(); 
-                let method_name = match &self.current {
-                    Token::Ident(name) => name.clone(),
-                    _ => panic!("Ожидалось имя метода после '.'"),
-                };
-                self.advance();
-                
-                self.expect(Token::LParen);
-                let mut args = Vec::new();
-                if self.current != Token::RParen {
-                    loop {
-                        args.push(self.parse_expr());
-                        if self.current == Token::Comma {
-                            self.advance();
-                        } else {
-                            break;
-                        }
+            self.advance();
+            let method_name = match &self.current {
+                Token::Ident(name) => name.clone(),
+                _ => panic!("Ожидалось имя метода после '.'"),
+            };
+            self.advance();
+
+            self.expect(Token::LParen);
+            let mut args = Vec::new();
+            if self.current != Token::RParen {
+                loop {
+                    args.push(self.parse_expr());
+                    if self.current == Token::Comma {
+                        self.advance();
+                    } else {
+                        break;
                     }
                 }
-                self.expect(Token::RParen);
-
-                expr = Expr::MethodCall {
-                    target: Box::new(expr),
-                    method: method_name,
-                    args,
-                };
             }
+            self.expect(Token::RParen);
+
+            expr = Expr::MethodCall {
+                target: Box::new(expr),
+                method: method_name,
+                args,
+            };
+        }
         expr
     }
 
@@ -646,6 +680,10 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(Token::RParen);
-        Expr::Call { name, args, intrinsic }
+        Expr::Call {
+            name,
+            args,
+            intrinsic,
+        }
     }
 }

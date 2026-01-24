@@ -5,10 +5,10 @@ use std::str::Chars;
 pub enum Token {
     Algorithm,
     Arguments,
-    BeginFunc,   
-    EndFunc,     
-    Begin,       
-    End,         
+    BeginFunc,
+    EndFunc,
+    Begin,
+    End,
     From,
     To,
     For,
@@ -37,45 +37,45 @@ pub enum Token {
     String(String),
     Ident(String),
 
-    Assign,        
-    Define,        
-    MinusAssign,   
+    Assign,
+    Define,
+    MinusAssign,
     Plus,
-    Minus,         
+    Minus,
     Div,
-    Colon,         
-    PlusAssign,    
+    Colon,
+    PlusAssign,
     DivAssign,
-    Equal,         
+    Equal,
     Less,
-    Greater,       
+    Greater,
     Mult,
     LessOrEqual,
     GreaterOrEqual,
     MultAssigment,
-    Mod,     
+    Mod,
     And,
-    Or,  
+    Or,
     Not,
     NotEqual,
 
-    Arrow, // -> 
+    Arrow, // ->
 
     LParen,
     RParen,
     Comma,
     Semicolon,
 
-    Bang,       
+    Bang,
     Eof,
-    
+
     //syntax sugar
     ForAll,
     Всех,
     В,
     Массиве,
     Диапазоне,
-    DotDot,  
+    DotDot,
     Dot,
 }
 
@@ -112,7 +112,7 @@ impl<'a> Lexer<'a> {
 
         match ch {
             '/' => {
-                self.input.next(); 
+                self.input.next();
 
                 if self.match_next('/') {
                     while let Some(c) = self.input.peek() {
@@ -124,10 +124,8 @@ impl<'a> Lexer<'a> {
                     self.next_token()
                 } else if self.match_next('*') {
                     while let Some(c) = self.input.next() {
-                        if c == '*' {
-                            if self.match_next('/') {
-                                break;
-                            }
+                        if c == '*' && self.match_next('/') {
+                            break;
                         }
                     }
                     self.next_token()
@@ -162,17 +160,23 @@ impl<'a> Lexer<'a> {
                 }
             }
             '|' => {
-                self.input.next(); 
+                self.input.next();
                 if self.match_next('|') {
                     Token::Or
                 } else {
                     Token::Pipe
                 }
             }
-            '[' => { self.input.next(); Token::LBracket }
-            ']' => { self.input.next(); Token::RBracket }
+            '[' => {
+                self.input.next();
+                Token::LBracket
+            }
+            ']' => {
+                self.input.next();
+                Token::RBracket
+            }
             '&' => {
-                self.input.next(); 
+                self.input.next();
                 if self.match_next('&') {
                     Token::And
                 } else {
@@ -225,12 +229,12 @@ impl<'a> Lexer<'a> {
                 }
             }
             '-' => {
-                self.input.next(); 
+                self.input.next();
                 if let Some(&'>') = self.input.peek() {
                     self.input.next();
                     Token::Arrow
                 } else if let Some(&'=') = self.input.peek() {
-                    self.input.next(); 
+                    self.input.next();
                     Token::MinusAssign
                 } else {
                     Token::Minus
@@ -241,8 +245,7 @@ impl<'a> Lexer<'a> {
                 if self.input.peek() == Some(&'=') {
                     self.input.next();
                     Token::NotEqual
-                }
-                else {
+                } else {
                     Token::Bang
                 }
             }
@@ -292,7 +295,7 @@ impl<'a> Lexer<'a> {
                 }
 
                 let mut lookahead = self.input.clone();
-                lookahead.next(); 
+                lookahead.next();
 
                 match lookahead.peek() {
                     Some(&next_ch) if next_ch.is_ascii_digit() => {
@@ -300,7 +303,7 @@ impl<'a> Lexer<'a> {
                         s.push(self.input.next().unwrap());
                     }
                     _ => {
-                        break; 
+                        break;
                     }
                 }
             } else {
@@ -316,9 +319,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_string(&mut self) -> Token {
-        self.input.next(); 
+        self.input.next();
         let mut s = String::new();
-        while let Some(c) = self.input.next() {
+        for c in self.input.by_ref() {
             if c == '"' {
                 break;
             }
@@ -348,7 +351,7 @@ impl<'a> Lexer<'a> {
             "пусть" => Token::Let,
             "если" | "Если" => Token::If,
             "то" => Token::Then,
-            "иначе"| "Иначе" => Token::Else,
+            "иначе" | "Иначе" => Token::Else,
 
             "пока" => Token::While,
             "для_" => Token::For,
@@ -367,21 +370,21 @@ impl<'a> Lexer<'a> {
 
             "не" | "Не" => {
                 if let Some(&'=') = self.input.peek() {
-                    self.input.next(); 
+                    self.input.next();
                     Token::NotEqual
                 } else {
-                    Token::Not 
+                    Token::Not
                 }
             }
             "Истина" | "Правда" => Token::Bool(true),
             "Ложь" => Token::Bool(false),
 
             "массив" | "Массив" => Token::Array,
-                
+
             //syntax sugar
             "и" | "И" => Token::And,
             "или" | "ИЛИ" => Token::Or,
-            
+
             "для" | "Для" => Token::ForAll,
             "всех" => Token::Всех,
             "в" => Token::В,

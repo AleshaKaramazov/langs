@@ -1,8 +1,4 @@
-
-const MATH_PAIRS: [(&str, &str); 2] = [
-    ("Степень;", POW),
-    ("Модуль;", ABS),
-];
+const MATH_PAIRS: [(&str, &str); 2] = [("Степень;", POW), ("Модуль;", ABS)];
 
 pub fn get_math_func(name: &str) -> Option<&'static str> {
     MATH_PAIRS

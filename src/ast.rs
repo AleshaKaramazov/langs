@@ -8,9 +8,9 @@ pub enum Type {
     String,
     Function(Box<Type>, Box<Type>),
     Array(Box<Type>),
-    Void, 
+    Void,
     Unknown,
-    Infer, 
+    Infer,
 }
 
 #[derive(Debug, Clone)]
@@ -38,11 +38,23 @@ pub enum Stmt {
         name: String,
         expr: Expr,
     },
-    AssignAdd { name: String, expr: Expr },
-    AssignSub { name: String, expr: Expr },
-    AssignMult { name: String, expr: Expr },
-    AssignDiv { name: String, expr: Expr },
-    
+    AssignAdd {
+        name: String,
+        expr: Expr,
+    },
+    AssignSub {
+        name: String,
+        expr: Expr,
+    },
+    AssignMult {
+        name: String,
+        expr: Expr,
+    },
+    AssignDiv {
+        name: String,
+        expr: Expr,
+    },
+
     If {
         cond: Expr,
         then_body: Vec<Stmt>,
@@ -68,7 +80,6 @@ pub enum Stmt {
     Expr(Expr),
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOp {
     Not,
@@ -91,11 +102,11 @@ pub enum Expr {
         args: Vec<Expr>,
     },
     MethodCall {
-        target: Box<Expr>, 
-        method: String,    
-        args: Vec<Expr>,   
+        target: Box<Expr>,
+        method: String,
+        args: Vec<Expr>,
     },
-    Array(Vec<Expr>), 
+    Array(Vec<Expr>),
     Index {
         target: Box<Expr>,
         index: Box<Expr>,

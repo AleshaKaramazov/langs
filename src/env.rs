@@ -1,5 +1,5 @@
-use std::{collections::HashMap, rc::Rc};
 use crate::value::Value;
+use std::{collections::HashMap, rc::Rc};
 
 pub struct Env {
     scopes: Vec<HashMap<String, Value>>,
@@ -16,8 +16,10 @@ impl Env {
         Rc::new(self.scopes.clone())
     }
 
-    pub fn replace_scopes(&mut self, new_scopes: Rc<Vec<HashMap<String, Value>>>) 
-        -> Vec<HashMap<String, Value>> {
+    pub fn replace_scopes(
+        &mut self,
+        new_scopes: Rc<Vec<HashMap<String, Value>>>,
+    ) -> Vec<HashMap<String, Value>> {
         std::mem::replace(&mut self.scopes, (*new_scopes).clone())
     }
 
@@ -30,9 +32,13 @@ impl Env {
     }
 
     pub fn declare(&mut self, name: String, val: Value) {
-        if let Some(last) = self.scopes.last() 
-            && last.contains_key(&name) {
-            panic!("переменная `{}` уже объявлена в этой области видимости", name);
+        if let Some(last) = self.scopes.last()
+            && last.contains_key(&name)
+        {
+            panic!(
+                "переменная `{}` уже объявлена в этой области видимости",
+                name
+            );
         }
         self.scopes.last_mut().unwrap().insert(name, val);
     }
@@ -50,7 +56,7 @@ impl Env {
     pub fn get(&self, name: &str) -> Value {
         for scope in self.scopes.iter().rev() {
             if let Some(v) = scope.get(name) {
-                return v.clone(); 
+                return v.clone();
             }
         }
         panic!("переменная `{}` не найдена", name);
