@@ -286,27 +286,33 @@ impl TypeChecker {
                         if *op == BinOp::Plus && l_ty == Type::String && r_ty == Type::String {
                             return Ok(Type::String);
                         }
-                        if l_ty == Type::Int && r_ty == Type::Int {
+                        if (l_ty == Type::Int && r_ty == Type::Int)
+                            || (l_ty == Type::Unknown && r_ty == Type::Int)
+                            || (r_ty == Type::Unknown && l_ty == Type::Int) {
                             Ok(Type::Int)
-                        } else if l_ty == Type::Float && r_ty == Type::Float ||
-                            ((l_ty == Type::Float && r_ty == Type::Int) || (r_ty == Type::Float && l_ty == Type::Int)){
+                        } else if (l_ty == Type::Float && r_ty == Type::Float)
+                            || (l_ty == Type::Float && r_ty == Type::Int) 
+                            || (r_ty == Type::Float && l_ty == Type::Int)
+                            || (l_ty == Type::Unknown && r_ty == Type::Float)
+                            || (r_ty == Type::Unknown && l_ty == Type::Float) {
                             Ok(Type::Float)
                         } else {
                             Err(format!(
-                                "Арифметическая операция {:?} требует Int, получено {:?} и {:?}",
+                                "Арифметическая операция {:?} требует \"Нат\" или \"Десятич\", получено {:?} и {:?}",
                                 op, l_ty, r_ty
                             ))
                         }
                     }
                     BinOp::Equal | BinOp::NotEqual => {
-                        if l_ty == r_ty {
+                        if l_ty == Type::Unknown || r_ty == Type::Unknown || l_ty == r_ty {
                             Ok(Type::Bool)
                         } else {
                             Err("Нельзя сравнивать разные типы".into())
                         }
                     }
                     BinOp::Less | BinOp::Greater | BinOp::LessOrEqual | BinOp::GreaterOrEqual => {
-                        if l_ty == Type::Int && r_ty == Type::Int {
+                        if matches!(l_ty, Type::Int | Type::Float | Type::Unknown) 
+                            && matches!(r_ty, Type::Int | Type::Float | Type::Unknown) {
                             Ok(Type::Bool)
                         } else {
                             Err("Сравнение больше/меньше только для чисел".into())

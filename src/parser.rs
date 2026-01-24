@@ -620,20 +620,21 @@ impl<'a> Parser<'a> {
                     };
                     self.expect(Token::RBracket);
 
-                    self.expect(Token::LParen);
-                    let mut args = Vec::new();
-                    if self.current != Token::RParen {
-                        loop {
-                            args.push(self.parse_expr());
-                            if self.current == Token::Comma {
-                                self.advance();
-                            } else {
-                                break;
+                    let mut args: Vec<Expr> = Vec::new();
+                    if self.current == Token::LParen {
+                        self.advance();
+                        if self.current != Token::RParen {
+                            loop {
+                                args.push(self.parse_expr());
+                                if self.current == Token::Comma {
+                                    self.advance();
+                                } else {
+                                    break;
+                                }
                             }
                         }
-                    }
-                    self.expect(Token::RParen);
-
+                        self.expect(Token::RParen);
+                    } 
                     Expr::NativeCall { path, args }
                 } else {
                     let expr = self.parse_primary();

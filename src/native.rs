@@ -33,21 +33,27 @@ pub fn convert_val<T: FromValue>(v: &Value) -> Result<T, String> {
     T::from_value(v)
 }
 
+
 #[macro_export]
 macro_rules! bind_native {
-    ($registry:expr, $name:expr, |$($arg_name:ident : $arg_type:ty),*| $body:block) => {
+    ($registry:expr, $name:expr, || $body:block) => {
+        $registry.register($name, move |_args: Vec<Value>| -> Result<Value, String> {
+            let result = $body;
+            use $crate::value::IntoValue;
+            Ok(result.into_value())
+        });
+    };
+
+    ($registry:expr, $name:expr, |$($arg_name:ident : $arg_type:ty),+| $body:block) => {
         $registry.register($name, move |args: Vec<Value>| -> Result<Value, String> {
             let mut _iter = args.into_iter();
-
             $(
-                let $arg_name = _iter.next()
+                let next_val = _iter.next()
                     .ok_or(format!("Недостаточно аргументов для {}", $name))?;
-
-                let $arg_name: $arg_type = $crate::native::convert_val(&$arg_name)?;
+                let $arg_name: $arg_type = $crate::native::convert_val(&next_val)?;
             )*
-
+            
             let result = $body;
-
             use $crate::value::IntoValue;
             Ok(result.into_value())
         });

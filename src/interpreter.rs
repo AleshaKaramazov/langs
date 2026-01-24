@@ -20,18 +20,23 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         let mut native = NativeRegistry::new();
-
-        bind_native!(native, "std::i64::pow", |base: i64, exp: i64| {
-            if exp < 0 { 0 } else { base.pow(exp as u32) }
-        });
-
-        bind_native!(native, "std::f64::sqrt", |val: f64| { val.sqrt() });
-
+        Self::math_module(&mut native);
+        
         Self {
             env: Env::new(),
             functions: HashMap::new(),
             native,
         }
+    }
+
+    pub fn math_module(native: &mut NativeRegistry) {
+        bind_native!(native, "Степень", |base: i64, exp: i64| {
+            if exp < 0 { 0 } else { base.pow(exp as u32) }
+        });
+
+        bind_native!(native, "ПИ", || {std::f64::consts::PI});
+        bind_native!(native, "Корень2", |val: f64| { val.sqrt() });
+         
     }
 
     pub fn run(&mut self, prog: &Program) -> RuntimeResult<()> {
