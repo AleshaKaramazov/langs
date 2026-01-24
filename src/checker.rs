@@ -348,6 +348,8 @@ impl TypeChecker {
                     }
                     (Type::String, "КончаетсяНа") => Ok(Type::Bool),
                     (Type::String, "НачинаетсяС") => Ok(Type::Bool),
+                    (Type::String, "РазделитьПо") => Ok(Type::Array(Box::new(Type::String))),
+                    (Type::String, "РазделитьПоПробелам") => Ok(Type::Array(Box::new(Type::String))),
                     (Type::Array(_), "Длинна") => Ok(Type::Int),
                     (Type::Array(_), "Содержит") | (Type::String, "Содержит") => {
                         if args.len() != 1 {

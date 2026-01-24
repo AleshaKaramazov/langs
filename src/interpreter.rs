@@ -311,11 +311,34 @@ impl Interpreter {
                     } else {
                         return Err("Метод 'НачинаестсяС' вызван не у строки".to_string())
                     }
+                } else if method == "РазделитьПо" &&
+                        let Expr::Var(name) = &**target {
+                    let item = self.eval_expr(&args[0])?;
+                    let val = self.env.get(name);
+                    if let Value::String(str) = val 
+                        && let Value::String(to_spl) = item {
+                        let array: Vec<Value> = str
+                            .split(to_spl.as_ref())
+                            .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                        return Ok(Value::Array(Rc::new(RefCell::new(array))));
+                    } else {
+                        return Err("Метод 'Разделить по' вызван не у строки".to_string())
+                    }
+
                 }
+                //  (Type::String, "РазделитьПо") => Ok(Type::Array(String)),
+                // (Type::String, "РазделитьПоПробелам"
 
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
                     (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
+                    (Value::String(s), "РазделитьПоПробелам") => {
+                        let array: Vec<Value> = s
+                            .split_whitespace()
+                            .map(|x| Value::String(Rc::new(x.to_string()))).collect();
+                        Ok(Value::Array(Rc::new(RefCell::new(array))))
+                    }
+                        
                     (Value::Array(arr), "Длинна") => {
                         Ok(Value::Int(arr.borrow().len() as i64))
                     }
