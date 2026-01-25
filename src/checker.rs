@@ -363,6 +363,7 @@ impl TypeChecker {
                         Ok(Type::Array(Box::new(Type::String)))
                     }
                     (Type::Array(_), "Длинна") => Ok(Type::Int),
+                    (Type::Array(_), "Удалить") => Ok(Type::Void),
                     (Type::Array(_), "Содержит") | (Type::String, "Содержит") => {
                         if args.len() != 1 {
                             return Err("Метод 'Содержит' ожидает 1 аргумент".into());

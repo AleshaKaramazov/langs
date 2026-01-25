@@ -316,7 +316,25 @@ impl Interpreter {
                             );
                         }
                     }
-                } else if method == "РазделитьПо" {
+                } else if method == "КончаетсяНа" {
+                    let target_val = self.eval_expr(target)?;
+                    let arg = self.eval_expr(&args[0])?;
+
+                    match (target_val, arg) {
+                        (Value::String(s), Value::String(prefix)) => {
+                            return Ok(Value::Bool(s.ends_with(prefix.as_ref())));
+                        }
+                        (Value::String(s), Value::Char(pr)) => {
+                            return Ok(Value::Bool(s.ends_with(pr)));
+                        }
+                        _ => {
+                            return Err(
+                                "Метод 'КончаетсяНА' работает только со строками".to_string()
+                            );
+                        }
+                    }
+                }
+                else if method == "РазделитьПо" {
                     let target_val = self.eval_expr(target)?;
                     let arg = self.eval_expr(&args[0])?;
 
@@ -334,6 +352,30 @@ impl Interpreter {
                                 .map(|x| Value::String(Rc::new(x.to_string())))
                                 .collect();
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
+                        }
+                        _ => {
+                            return Err(
+                                "Метод 'РазделитьПо' работает только со строками".to_string()
+                            );
+                        }
+                    }
+                } else if method == "Удалить" {
+                    let target_val = self.eval_expr(target)?;
+                    let arg = self.eval_expr(&args[0])?;
+
+                    match (target_val, arg) {
+                        (Value::Array(s), Value::Int(index)) => {
+                            if index < 0 {
+                                return Err(
+                                    "Метод 'Удалить' принимает индекс БОЛЬШЕ НУЛЯ".to_string()
+                                );
+                            } else if s.borrow().len() - 1 < index as usize {
+                                return Err(
+                                    "длинна массива < индекса".to_string()
+                                );
+                            }
+                            s.borrow_mut().remove(index as usize); 
+                            return Ok(Value::Void);
                         }
                         _ => {
                             return Err(
