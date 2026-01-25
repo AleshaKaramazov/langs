@@ -564,24 +564,8 @@ impl<'a> Parser<'a> {
                     self.advance();
                     if self.current == Token::LParen {
                         self.finish_call(n, true)
-                    } else if self.current == Token::LBracket {
-                        self.advance();
-                        let index = self.parse_expr();
-                        self.expect(Token::RBracket);
-                        Expr::Index {
-                            target: Box::new(Expr::Var(n)),
-                            index: Box::new(index),
-                        }
                     } else {
                         panic!("Ожидалось ( после '!'");
-                    }
-                } else if self.current == Token::LBracket {
-                    self.advance();
-                    let index = self.parse_expr();
-                    self.expect(Token::RBracket);
-                    Expr::Index {
-                        target: Box::new(Expr::Var(n)),
-                        index: Box::new(index),
                     }
                 } else {
                     Expr::Var(n)
@@ -645,34 +629,48 @@ impl<'a> Parser<'a> {
             }
             _ => panic!("Неожиданный токен в выражении: {:?}", self.current),
         };
-        while self.current == Token::Dot {
-            self.advance();
-            let method_name = match &self.current {
-                Token::Ident(name) => name.clone(),
-                _ => panic!("Ожидалось имя метода после '.'"),
-            };
-            self.advance();
+        loop {
+            if self.current == Token::Dot {
+                self.advance();
+                let method_name = match &self.current {
+                    Token::Ident(name) => name.clone(),
+                    _ => panic!("Ожидалось имя метода после '.'"),
+                };
+                self.advance();
 
-            self.expect(Token::LParen);
-            let mut args = Vec::new();
-            if self.current != Token::RParen {
-                loop {
-                    args.push(self.parse_expr());
-                    if self.current == Token::Comma {
-                        self.advance();
-                    } else {
-                        break;
+                self.expect(Token::LParen);
+                let mut args = Vec::new();
+                if self.current != Token::RParen {
+                    loop {
+                        args.push(self.parse_expr());
+                        if self.current == Token::Comma {
+                            self.advance();
+                        } else {
+                            break;
+                        }
                     }
                 }
-            }
-            self.expect(Token::RParen);
+                self.expect(Token::RParen);
 
-            expr = Expr::MethodCall {
-                target: Box::new(expr),
-                method: method_name,
-                args,
-            };
+                expr = Expr::MethodCall {
+                    target: Box::new(expr),
+                    method: method_name,
+                    args,
+                };
+            } else if self.current == Token::LBracket {
+                self.advance();
+                let index = self.parse_expr();
+                self.expect(Token::RBracket);
+                
+                expr = Expr::Index {
+                    target: Box::new(expr),
+                    index: Box::new(index),
+                };
+            } else {
+                break;
+            }
         }
+        
         expr
     }
 

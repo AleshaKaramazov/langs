@@ -286,13 +286,11 @@ impl TypeChecker {
                         if *op == BinOp::Plus && l_ty == Type::String && r_ty == Type::String {
                             return Ok(Type::String);
                         }
-                        if (l_ty == Type::Int && r_ty == Type::Int)
-                            || (l_ty == Type::Unknown && r_ty == Type::Int)
+                        if !(r_ty != Type::Int || l_ty != Type::Int && l_ty != Type::Unknown) 
                             || (r_ty == Type::Unknown && l_ty == Type::Int)
                         {
                             Ok(Type::Int)
-                        } else if (l_ty == Type::Float && r_ty == Type::Float)
-                            || (l_ty == Type::Float && r_ty == Type::Int)
+                        } else if !(l_ty != Type::Float || r_ty != Type::Float && r_ty != Type::Int)
                             || (r_ty == Type::Float && l_ty == Type::Int)
                             || (l_ty == Type::Unknown && r_ty == Type::Float)
                             || (l_ty == Type::Float && r_ty == Type::Unknown)
