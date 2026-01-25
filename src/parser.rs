@@ -482,7 +482,6 @@ impl<'a> Parser<'a> {
                 let param_name = self.consume_ident();
                 self.advance();
 
-                self.expect(Token::Colon);
                 let param_ty = self.parse_type();
 
                 self.expect(Token::Pipe);
