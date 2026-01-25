@@ -70,7 +70,9 @@ pub enum Token {
 
     Bang,
     Eof,
-
+    
+    Continue, 
+    Break,
     //syntax sugar
     ForAll,
     Всех,
@@ -363,6 +365,8 @@ impl<'a> Lexer<'a> {
             "если" | "Если" => Token::If,
             "то" => Token::Then,
             "иначе" | "Иначе" => Token::Else,
+            "закончить" => Token::Break,
+            "продолжить" | "след" => Token::Continue,
 
             "пока" => Token::While,
             "для_" => Token::For,

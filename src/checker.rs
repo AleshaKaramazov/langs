@@ -120,6 +120,7 @@ impl TypeChecker {
 
     fn check_stmt(&mut self, stmt: &Stmt, expected_ret: &Type) -> Result<(), String> {
         match stmt {
+            Stmt::Break | Stmt::Continue => (),
             Stmt::Return(maybe_expr) => match maybe_expr {
                 Some(expr) => {
                     let actual = self.check_expr(expr)?;

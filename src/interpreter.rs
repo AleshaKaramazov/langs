@@ -93,6 +93,10 @@ impl Interpreter {
                 };
                 Ok(Some(val))
             }
+            Stmt::Break => 
+                Ok(Some(Value::BreakFlag)),
+            Stmt::Continue => 
+                Ok(Some(Value::ContinueFlag)),
             Stmt::Let { name, expr, .. } => {
                 let val = self.eval_expr(expr)?;
                 self.env.declare(name.clone(), val);
@@ -112,15 +116,26 @@ impl Interpreter {
             Stmt::If {
                 cond,
                 then_body,
+                else_if,
                 else_body,
-                ..
             } => {
                 let val = self.eval_expr(cond)?;
                 if let Value::Bool(true) = val {
                     if let Some(r) = self.exec_block(then_body)? {
                         return Ok(Some(r));
                     }
-                } else if let Some(else_b) = else_body
+                } 
+                let mut need_else = true;
+                for (cond, body) in else_if {
+                    let val = self.eval_expr(cond)?;
+                    if let Value::Bool(true) = val {
+                        need_else = false;
+                        if let Some(r) = self.exec_block(body)? {
+                            return Ok(Some(r))
+                        }
+                    }
+                }
+                if need_else && let Some(else_b) = else_body
                     && let Some(r) = self.exec_block(else_b)?
                 {
                     return Ok(Some(r));
@@ -144,7 +159,13 @@ impl Interpreter {
                         self.env.exit_scope();
 
                         if let Some(ret) = result {
-                            return Ok(Some(ret));
+                            if ret == Value::BreakFlag {
+                                break;
+                            } else if ret == Value::ContinueFlag {
+                                continue;
+                            } else {
+                                return Ok(Some(ret));
+                            }
                         }
                     }
                 } else {
@@ -159,7 +180,14 @@ impl Interpreter {
                         break;
                     }
                     if let Some(ret) = self.exec_block(body)? {
-                        return Ok(Some(ret));
+                        if ret == Value::BreakFlag {
+                            break;
+                        } else if ret == Value::ContinueFlag {
+                            continue;
+                        }
+                        else {
+                            return Ok(Some(ret));
+                        }
                     }
                 }
                 Ok(None)
@@ -184,6 +212,11 @@ impl Interpreter {
                         for i in s..=e {
                             self.env.assign(var, Value::Int(i));
                             if let Some(ret) = self.exec_block(body)? {
+                                if ret == Value::BreakFlag {
+                                    break;
+                                } else if ret == Value::ContinueFlag {
+                                    continue;
+                                }
                                 self.env.exit_scope();
                                 return Ok(Some(ret));
                             }

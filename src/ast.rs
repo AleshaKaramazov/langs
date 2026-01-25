@@ -30,6 +30,8 @@ pub struct Program {
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Return(Option<Expr>),
+    Break,
+    Continue,
     Let {
         name: String,
         ty: Type,

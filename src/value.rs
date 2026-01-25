@@ -7,6 +7,8 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
+    BreakFlag,
+    ContinueFlag,
     Void,
     Closure {
         param: String,
@@ -32,6 +34,7 @@ impl fmt::Display for Value {
             Self::Bool(b) => write!(f, "{}", b),
             Self::String(s) => write!(f, "{}", s),
             Self::Array(a) => write!(f, "{:?}", a.borrow()),
+            _=> write!(f, "для этих типой не придусмотрен вывод на экран"),
         }
     }
 }

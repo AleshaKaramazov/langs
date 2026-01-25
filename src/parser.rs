@@ -99,6 +99,16 @@ impl<'a> Parser<'a> {
                     Stmt::Return(Some(expr))
                 }
             }
+            Token::Break => {
+                self.advance();
+                self.expect(Token::Semicolon);
+                Stmt::Break
+            }
+            Token::Continue => {
+                self.advance();
+                self.expect(Token::Semicolon);
+                Stmt::Continue
+            }
             Token::Let => self.parse_let(),
             Token::If => self.parse_if(),
             Token::While => self.parse_while(),
