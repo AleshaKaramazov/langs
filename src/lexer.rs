@@ -365,17 +365,17 @@ impl<'a> Lexer<'a> {
             "если" | "Если" => Token::If,
             "то" => Token::Then,
             "иначе" | "Иначе" => Token::Else,
-            "закончить" => Token::Break,
-            "продолжить" | "след" => Token::Continue,
+            "закончить" | "Закончить" => Token::Break,
+            "продолжить"| "Продолжить" | "след" => Token::Continue,
 
-            "пока" => Token::While,
+            "пока" | "Пока" => Token::While,
             "для_" => Token::For,
             "от" => Token::From,
             "до" => Token::To,
 
             "выполнить" => Token::Do,
 
-            "вернуть" | "конец" => Token::Return,
+            "вернуть" => Token::Return,
 
             "Нат" => Token::TypeNat,
             "Цел" => Token::TypeInt,

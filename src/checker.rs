@@ -410,7 +410,7 @@ impl TypeChecker {
             }
             Expr::Array(elems) => {
                 if elems.is_empty() {
-                    return Ok(Type::Int);
+                    return Ok(Type::Unknown);
                 }
                 let first_ty = self.check_expr(&elems[0])?;
                 for e in &elems[1..] {
@@ -444,9 +444,11 @@ impl TypeChecker {
                     for arg in args {
                         self.check_expr(arg)?;
                     }
-                    return Ok(Type::Int);
+                    return Ok(Type::Void);
+                } else if *intrinsic && name == "ОтчиститьКонсоль" {
+                    return Ok(Type::Void);
                 }
-                if *intrinsic && name == "Считать" {
+                else if *intrinsic && name == "Считать" {
                     return Ok(Type::Unknown);
                 }
 

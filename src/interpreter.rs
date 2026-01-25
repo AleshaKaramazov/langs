@@ -120,18 +120,21 @@ impl Interpreter {
                 else_body,
             } => {
                 let val = self.eval_expr(cond)?;
+                let mut need_else = true;
                 if let Value::Bool(true) = val {
+                    need_else = false;
                     if let Some(r) = self.exec_block(then_body)? {
                         return Ok(Some(r));
                     }
                 } 
-                let mut need_else = true;
-                for (cond, body) in else_if {
-                    let val = self.eval_expr(cond)?;
-                    if let Value::Bool(true) = val {
-                        need_else = false;
-                        if let Some(r) = self.exec_block(body)? {
-                            return Ok(Some(r))
+                if need_else { 
+                    for (cond, body) in else_if {
+                        let val = self.eval_expr(cond)?;
+                        if let Value::Bool(true) = val {
+                            need_else = false;
+                            if let Some(r) = self.exec_block(body)? {
+                                return Ok(Some(r))
+                            }
                         }
                     }
                 }
@@ -395,7 +398,6 @@ impl Interpreter {
                 } else if method == "Удалить" {
                     let target_val = self.eval_expr(target)?;
                     let arg = self.eval_expr(&args[0])?;
-
                     match (target_val, arg) {
                         (Value::Array(s), Value::Int(index)) => {
                             if index < 0 {
@@ -412,7 +414,7 @@ impl Interpreter {
                         }
                         _ => {
                             return Err(
-                                "Метод 'РазделитьПо' работает только со строками".to_string()
+                                "Метод 'Удалить' принимает индекс элемента (ЧИСЛО)".to_string()
                             );
                         }
                     }
@@ -622,9 +624,13 @@ impl Interpreter {
 
     fn call_intrinsic(&self, name: &str, args: Vec<Value>) -> RuntimeResult<Value> {
         match name {
+            "ОтчиститьКонсоль" => {
+                print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+                Ok(Value::Void)
+            }
             "Написать" => {
                 self.print_values(args);
-                Ok(Value::Int(0))
+                Ok(Value::Void)
             }
             "Считать" => {
                 if let Some(prompt) = args.first() {
@@ -639,10 +645,10 @@ impl Interpreter {
                     .map_err(|e| e.to_string())?;
                 let input = input.trim();
 
-                if let Ok(f) = input.parse::<f64>() {
-                    Ok(Value::Float(f))
-                } else if let Ok(i) = input.parse::<i64>() {
+                if let Ok(i) = input.parse::<i64>() {
                     Ok(Value::Int(i))
+                } else if let Ok(f) = input.parse::<f64>() {
+                    Ok(Value::Float(f))
                 } else if let Ok(c) = input.parse::<char>() {
                     Ok(Value::Char(c))
                 } else {

@@ -364,7 +364,7 @@ impl<'a> Parser<'a> {
                 self.expect(Token::Greater);
                 return Type::Array(Box::new(inner_type));
             }
-            _ => panic!("Неизвестный тип"),
+            _ => panic!("Неизвестный тип: {:?}", self.current),
         };
         self.advance();
         t
