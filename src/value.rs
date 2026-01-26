@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
+    Uninitialized,
     BreakFlag,
     ContinueFlag,
     Void,
@@ -26,6 +27,7 @@ pub enum Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Value::Uninitialized => write!(f, "<неинициализировано>"), 
             Value::Closure { .. } => write!(f, "<функция>"),
             Self::Char(c) => write!(f, "{}", c),
             Self::Void => write!(f, "пусто"),

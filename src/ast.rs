@@ -35,7 +35,7 @@ pub enum Stmt {
     Let {
         name: String,
         ty: Type,
-        expr: Expr,
+        expr: Option<Expr>,
     },
     Assign {
         name: String,

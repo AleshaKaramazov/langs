@@ -97,8 +97,18 @@ impl Interpreter {
                 Ok(Some(Value::BreakFlag)),
             Stmt::Continue => 
                 Ok(Some(Value::ContinueFlag)),
-            Stmt::Let { name, expr, .. } => {
-                let val = self.eval_expr(expr)?;
+            Stmt::Let { name, ty, expr, .. } => {
+                let val = match expr {
+                    Some(e) => self.eval_expr(e)?,
+                    None => match ty {
+                        Type::String => Value::String(Rc::new(RefCell::new(String::new()))),
+                        Type::Int => Value::Int(0),
+                        Type::Float => Value::Float(0.0),
+                        Type::Bool => Value::Bool(false),
+                        Type::Array(_) => Value::Array(Rc::new(RefCell::new(Vec::new()))),
+                        _ => Value::Void,
+                    },
+                };
                 self.env.declare(name.clone(), val);
                 Ok(None)
             }
@@ -274,7 +284,13 @@ impl Interpreter {
 
                 self.native.call(path, evaluated_args)
             }
-            Expr::Var(name) => Ok(self.env.get(name)),
+            Expr::Var(name) => {
+                let val = self.env.get(name);
+                if val == Value::Uninitialized {
+                    return Err(format!("Переменная '{}' используется до инициализации!", name));
+                }
+                Ok(val)
+            }
             Expr::MethodCall {
                 target,
                 method,
@@ -421,27 +437,26 @@ impl Interpreter {
                     }
                 } else if method == "Считать" {
                     let target_val = self.eval_expr(target)?;
-                    if let Value::String(s) = target_val {
-                        s.borrow_mut().clear();
-                        if args.len() > 1 {
-                            let arg = self.eval_expr(&args[0])?;
-                            print!("{}", arg);
-                            let _ = stdout().flush();
+                    
+                    let s_ref = if let Value::String(s) = target_val {
+                        s
+                    } else {
+                        return Err("Метод 'Считать' можно вызвать только у переменной типа Строка".into());
+                    };
+
+                    if !args.is_empty() {
+                        let prompt = self.eval_expr(&args[0])?;
+                        print!("{}", prompt);
+                        let _ = io::stdout().flush();
+                    }
+
+                    let mut input = String::new();
+                    return match io::stdin().read_line(&mut input) {
+                        Ok(u) => {
+                            *s_ref.borrow_mut() = input.trim().to_string();
+                            Ok(Value::Int(u as i64))
                         }
-                        let mut to_read = String::new();
-                        return Ok(Value::Int(match std::io::stdin().read_line(&mut to_read) {
-                            Ok(0) => 0,
-                            Ok(u) => {
-                                *s.borrow_mut() = to_read.trim().to_string();
-                                u as i64
-                            },
-                            Err(_) => -1
-                        }))
-                    } 
-                    else {
-                        return Err(
-                            "Метод 'Считать' принимает индекс элемента (ЧИСЛО)".to_string()
-                        );
+                        Err(e) => Err(format!("Ошибка чтения: {}", e)),
                     }
                 }
                 let val = self.eval_expr(target)?;

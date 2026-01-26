@@ -145,7 +145,10 @@ impl Visualizer {
                     "  {} [label=\"пусть {} = {}\"];",
                     current_id,
                     name,
-                    self.fmt_expr(expr)
+                    match expr {
+                        Some(expr) => self.fmt_expr(expr),
+                        None => "NULL".to_string(),
+                    }
                 )
                 .unwrap();
                 (current_id.clone(), current_id)

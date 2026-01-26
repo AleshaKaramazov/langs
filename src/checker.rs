@@ -141,27 +141,39 @@ impl TypeChecker {
                 }
             },
             Stmt::Let { name, ty, expr } => {
-                let expr_ty = self.check_expr(expr)?;
-
-                let final_ty = if *ty == Type::Infer {
-                    expr_ty.clone()
-                } else {
-                    if expr_ty != Type::Unknown
-                        && *ty != expr_ty
-                        && match ty {
-                            Type::Array(inner) => **inner != expr_ty,
-                            _ => true,
-                        }
-                    {
-                        return Err(format!(
-                            "Ошибка в 'пусть {}': ожидался тип {:?}, получен {:?}",
-                            name, ty, expr_ty
-                        ));
+                match expr {
+                    Some(expr) => {
+                        let expr_ty = self.check_expr(expr)?;
+                        
+                        let final_ty = if *ty == Type::Infer {
+                            expr_ty.clone()
+                        } else {
+                            if expr_ty != Type::Unknown
+                                && *ty != expr_ty
+                                && match ty {
+                                    Type::Array(inner) => **inner != expr_ty,
+                                    _ => true,
+                                }
+                            {
+                                return Err(format!(
+                                    "Ошибка в 'пусть {}': ожидался тип {:?}, получен {:?}",
+                                    name, ty, expr_ty
+                                ));
+                            }
+                            ty.clone()
+                        };
+                        self.env.declare(name.clone(), final_ty)?;
                     }
-                    ty.clone()
-                };
-
-                self.env.declare(name.clone(), final_ty)?;
+                    None => {
+                        if *ty == Type::Infer {
+                            return Err(format!(
+                                "Переменная '{}' должна иметь явно указанный тип (например, : Строка), так как начальное значение отсутствует.", 
+                                name
+                            ));
+                        }
+                        self.env.declare(name.clone(), ty.clone())?;
+                    }
+                }
             }
             Stmt::ForEach {
                 var,

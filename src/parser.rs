@@ -182,13 +182,14 @@ impl<'a> Parser<'a> {
             ty = self.parse_type();
         }
 
-        if self.current == Token::Define || self.current == Token::Assign {
+        let expr = if self.current == Token::Define || self.current == Token::Assign {
             self.advance();
+            let e =self.parse_expr();
+            Some(e)
         } else {
-            panic!("Ожидалось := или =");
-        }
+            None
+        };
 
-        let expr = self.parse_expr();
         self.expect(Token::Semicolon);
 
         Stmt::Let { name, ty, expr }
