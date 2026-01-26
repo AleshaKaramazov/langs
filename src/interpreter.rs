@@ -5,7 +5,7 @@ use crate::value::Value;
 use std::{
     cell::RefCell,
     collections::HashMap,
-    io::{self, Write},
+    io::{self, Write, stdout},
     rc::Rc,
 };
 
@@ -260,7 +260,7 @@ impl Interpreter {
             Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Char(c) => Ok(Value::Char(*c)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
-            Expr::String(s) => Ok(Value::String(Rc::new(s.clone()))),
+            Expr::String(s) => Ok(Value::String(Rc::new(RefCell::new(s.clone())))),
             Expr::Lambda { param, body, .. } => Ok(Value::Closure {
                 param: param.clone(),
                 body: body.clone(),
@@ -324,10 +324,10 @@ impl Interpreter {
 
                     match (target_val, arg) {
                         (Value::String(s), Value::String(prefix)) => {
-                            return Ok(Value::Bool(s.contains(prefix.as_ref())));
+                            return Ok(Value::Bool(s.borrow().contains(&*prefix.borrow())));
                         }
                         (Value::String(s), Value::Char(pr)) => {
-                            return Ok(Value::Bool(s.contains(pr)));
+                            return Ok(Value::Bool(s.borrow().contains(pr)));
                         }
                         _ => {
                             return Err(
@@ -341,10 +341,10 @@ impl Interpreter {
 
                     match (target_val, arg) {
                         (Value::String(s), Value::String(prefix)) => {
-                            return Ok(Value::Bool(s.starts_with(prefix.as_ref())));
+                            return Ok(Value::Bool(s.borrow().starts_with(&*prefix.borrow())));
                         }
                         (Value::String(s), Value::Char(pr)) => {
-                            return Ok(Value::Bool(s.starts_with(pr)));
+                            return Ok(Value::Bool(s.borrow().starts_with(pr)));
                         }
                         _ => {
                             return Err(
@@ -358,10 +358,10 @@ impl Interpreter {
 
                     match (target_val, arg) {
                         (Value::String(s), Value::String(prefix)) => {
-                            return Ok(Value::Bool(s.ends_with(prefix.as_ref())));
+                            return Ok(Value::Bool(s.borrow().ends_with(&*prefix.borrow())));
                         }
                         (Value::String(s), Value::Char(pr)) => {
-                            return Ok(Value::Bool(s.ends_with(pr)));
+                            return Ok(Value::Bool(s.borrow().ends_with(pr)));
                         }
                         _ => {
                             return Err(
@@ -376,16 +376,17 @@ impl Interpreter {
 
                     match (target_val, arg) {
                         (Value::String(s), Value::String(c)) => {
-                            let array: Vec<Value> = s
-                                .split(c.as_ref())
-                                .map(|x| Value::String(Rc::new(x.to_string())))
+                            let array: Vec<Value> = s.borrow()
+                                .split(&*c.borrow())
+                                .map(|x| Value::String(Rc::new(RefCell::new(x.to_string()))))
                                 .collect();
+                            
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
                         }
                         (Value::String(s), Value::Char(c)) => {
-                            let array: Vec<Value> = s
+                            let array: Vec<Value> = s.borrow()
                                 .split(c)
-                                .map(|x| Value::String(Rc::new(x.to_string())))
+                                .map(|x| Value::String(Rc::new(RefCell::new(x.to_string()))))
                                 .collect();
                             return Ok(Value::Array(Rc::new(RefCell::new(array))));
                         }
@@ -418,14 +419,38 @@ impl Interpreter {
                             );
                         }
                     }
+                } else if method == "Считать" {
+                    let target_val = self.eval_expr(target)?;
+                    if let Value::String(s) = target_val {
+                        s.borrow_mut().clear();
+                        if args.len() > 1 {
+                            let arg = self.eval_expr(&args[0])?;
+                            print!("{}", arg);
+                            let _ = stdout().flush();
+                        }
+                        let mut to_read = String::new();
+                        return Ok(Value::Int(match std::io::stdin().read_line(&mut to_read) {
+                            Ok(0) => 0,
+                            Ok(u) => {
+                                *s.borrow_mut() = to_read.trim().to_string();
+                                u as i64
+                            },
+                            Err(_) => -1
+                        }))
+                    } 
+                    else {
+                        return Err(
+                            "Метод 'Считать' принимает индекс элемента (ЧИСЛО)".to_string()
+                        );
+                    }
                 }
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
-                    (Value::String(s), "Длинна") => Ok(Value::Int(s.chars().count() as i64)),
+                    (Value::String(s), "Длинна") => Ok(Value::Int(s.borrow().chars().count() as i64)),
                     (Value::String(s), "РазделитьПоПробелам") => {
-                        let array: Vec<Value> = s
+                        let array: Vec<Value> = s.borrow()
                             .split_whitespace()
-                            .map(|x| Value::String(Rc::new(x.to_string())))
+                            .map(|x| Value::String(Rc::new(RefCell::new(x.to_string()))))
                             .collect();
                         Ok(Value::Array(Rc::new(RefCell::new(array))))
                     }
@@ -600,7 +625,7 @@ impl Interpreter {
             (Value::Bool(l), Value::Bool(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
 
             (Value::String(l), Value::String(r), BinOp::Plus) => {
-                Ok(Value::String(Rc::new(format!("{}{}", l, r))))
+                Ok(Value::String(Rc::new(RefCell::new(format!("{}{}", l.borrow(), r.borrow())))))
             }
             (Value::String(l), Value::String(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
             (Value::String(l), Value::String(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
@@ -652,7 +677,7 @@ impl Interpreter {
                 } else if let Ok(c) = input.parse::<char>() {
                     Ok(Value::Char(c))
                 } else {
-                    Ok(Value::String(Rc::new(input.to_string())))
+                    Ok(Value::String(Rc::new(RefCell::new(input.to_string()))))
                 }
             }
             _ => Err(format!("Неизвестная встроенная функция: {}", name)),
@@ -668,9 +693,9 @@ impl Interpreter {
         let mut iter = values.iter();
         if let Some(first) = iter.next() {
             if let Value::String(fmt) = first
-                && fmt.contains("{}")
+                && fmt.borrow().contains("{}")
             {
-                let mut res = fmt.to_string();
+                let mut res = fmt.borrow().to_string();
                 for v in iter {
                     res = res.replacen("{}", &v.to_string(), 1);
                 }

@@ -19,7 +19,7 @@ pub enum Value {
     Float(f64),
     Char(char),
     Bool(bool),
-    String(Rc<String>),
+    String(Rc<RefCell<String>>),
     Array(Rc<RefCell<Vec<Value>>>),
 }
 
@@ -32,7 +32,7 @@ impl fmt::Display for Value {
             Self::Float(fl) => write!(f, "{}", fl),
             Self::Int(i) => write!(f, "{}", i),
             Self::Bool(b) => write!(f, "{}", b),
-            Self::String(s) => write!(f, "{}", s),
+            Self::String(s) => write!(f, "{}", s.borrow()),
             Self::Array(a) => write!(f, "{:?}", a.borrow()),
             _=> write!(f, "для этих типой не придусмотрен вывод на экран"),
         }
@@ -62,7 +62,7 @@ impl Value {
         }
     }
 
-    pub fn expect_string(&self) -> Result<Rc<String>, String> {
+    pub fn expect_string(&self) -> Result<Rc<RefCell<String>>, String> {
         match self {
             Value::String(v) => Ok(v.clone()),
             _ => Err(format!("Ожидалась Строка, получено {}", self)),
@@ -91,7 +91,7 @@ impl IntoValue for bool {
 }
 impl IntoValue for String {
     fn into_value(self) -> Value {
-        Value::String(Rc::new(self))
+        Value::String(Rc::new(RefCell::new(self)))
     }
 }
 impl IntoValue for () {
@@ -100,7 +100,7 @@ impl IntoValue for () {
     }
 }
 
-impl FromValue for Rc<String> {
+impl FromValue for Rc<RefCell<String>> {
     fn from_value(v: &Value) -> Result<Self, String> {
         v.expect_string()
     }

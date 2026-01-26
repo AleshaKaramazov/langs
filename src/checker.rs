@@ -357,6 +357,7 @@ impl TypeChecker {
                     }
                     (Type::String, "КончаетсяНа") => Ok(Type::Bool),
                     (Type::String, "НачинаетсяС") => Ok(Type::Bool),
+                    (Type::String, "Считать") => Ok(Type::Int),
                     (Type::String, "РазделитьПо") => {
                         Ok(Type::Array(Box::new(Type::String)))
                     }

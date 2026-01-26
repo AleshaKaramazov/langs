@@ -80,6 +80,6 @@ impl FromValue for bool {
 }
 impl FromValue for String {
     fn from_value(v: &Value) -> Result<Self, String> {
-        v.expect_string().map(|rc_s| (*rc_s).clone())
+        v.expect_string().map(|rc_s| (*rc_s.borrow()).clone())
     }
 }
