@@ -5,7 +5,7 @@ use crate::value::Value;
 use std::{
     cell::RefCell,
     collections::HashMap,
-    io::{self, Write, stdout},
+    io::{self, Write},
     rc::Rc,
 };
 
@@ -462,6 +462,8 @@ impl Interpreter {
                 let val = self.eval_expr(target)?;
                 match (val, method.as_str()) {
                     (Value::String(s), "Длинна") => Ok(Value::Int(s.borrow().chars().count() as i64)),
+                    (Value::String(s), "Пусто") => Ok(Value::Bool(s.borrow().is_empty())),
+                    (Value::Array(arr), "Пусто") => Ok(Value::Bool(arr.borrow().is_empty())),
                     (Value::String(s), "РазделитьПоПробелам") => {
                         let array: Vec<Value> = s.borrow()
                             .split_whitespace()

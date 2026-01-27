@@ -373,6 +373,8 @@ impl TypeChecker {
                     (Type::String, "РазделитьПо") => {
                         Ok(Type::Array(Box::new(Type::String)))
                     }
+                    (Type::String, "Пусто") => Ok(Type::Bool),
+                    (Type::Array(_), "Пусто") => Ok(Type::Bool),
                     (Type::String, "РазделитьПоПробелам") => {
                         Ok(Type::Array(Box::new(Type::String)))
                     }
