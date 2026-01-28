@@ -269,6 +269,21 @@ impl TypeChecker {
 
     fn check_expr(&mut self, expr: &Expr) -> Result<Type, String> {
         match expr {
+            Expr::PreInc(target) 
+                | Expr::PreDec(target) 
+                | Expr::PostInc(target) 
+                | Expr::PostDec(target) => {
+                match &**target {
+                    Expr::Var(_) => {},
+                    _ => return Err("Инкремент/Декремент применим только к переменным".into())
+                }
+
+                let ty = self.check_expr(target)?;
+                if ty != Type::Int {
+                    return Err(format!("Инкремент/Декремент работает только с Числами (Int), получено {:?}", ty));
+                }
+                Ok(Type::Int)
+            }
             Expr::NativeCall { .. } => Ok(Type::Unknown),
             Expr::Lambda {
                 param,

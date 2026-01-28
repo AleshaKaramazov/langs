@@ -264,8 +264,40 @@ impl Interpreter {
         Ok(None)
     }
 
+    fn handle_inc_dec(
+        &mut self, 
+        target: &Expr, 
+        delta: i64, 
+        is_prefix: bool) -> RuntimeResult<Value> {
+    let name = match target {
+        Expr::Var(n) => n,
+        _ => return Err(
+            "Ожидалась переменная для операции инкремента/декремента".to_string()),
+    };
+
+    let current_val = self.env.get(name);
+    
+    if let Value::Int(i) = current_val {
+        let new_val = Value::Int(i + delta);
+        
+        self.env.assign(name, new_val.clone());
+
+        if is_prefix {
+            Ok(new_val) // ++x
+        } else {
+            Ok(current_val) // x++
+        }
+    } else {
+        Err(format!("Операция применима только к целым числам, получено {}", current_val))
+    }
+}
+
     fn eval_expr(&mut self, expr: &Expr) -> RuntimeResult<Value> {
         match expr {
+            Expr::PreInc(target) => self.handle_inc_dec(target, 1, true),
+            Expr::PreDec(target) => self.handle_inc_dec(target, -1, true),
+            Expr::PostInc(target) => self.handle_inc_dec(target, 1, false),
+            Expr::PostDec(target) => self.handle_inc_dec(target, -1, false),
             Expr::Int(i) => Ok(Value::Int(*i)),
             Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Char(c) => Ok(Value::Char(*c)),

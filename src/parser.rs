@@ -505,6 +505,16 @@ impl<'a> Parser<'a> {
                     body: Rc::new(body),
                 }
             }
+            Token::Increment => {
+                self.advance();
+                let right = self.parse_primary();
+                Expr::PreInc(Box::new(right))
+            }
+            Token::Decrement => {
+                self.advance();
+                let right = self.parse_primary();
+                Expr::PreDec(Box::new(right))
+            }
             Token::Not => {
                 self.advance();
                 let expr = self.parse_primary();
@@ -667,7 +677,14 @@ impl<'a> Parser<'a> {
                     method: method_name,
                     args,
                 };
-            } else if self.current == Token::LBracket {
+            } else if self.current == Token::Increment { // x++
+                self.advance();
+                expr = Expr::PostInc(Box::new(expr));
+            } else if self.current == Token::Decrement { // x--
+                self.advance();
+                expr = Expr::PostDec(Box::new(expr));
+            }
+            else if self.current == Token::LBracket {
                 self.advance();
                 let index = self.parse_expr();
                 self.expect(Token::RBracket);

@@ -96,6 +96,14 @@ pub enum Expr {
     String(String),
     Var(String),
     Char(char),
+    // ++x
+    PreInc(Box<Expr>),
+    // --x
+    PreDec(Box<Expr>),
+    // x++
+    PostInc(Box<Expr>),
+    // x--
+    PostDec(Box<Expr>),
     Lambda {
         param: String,
         param_ty: Type,

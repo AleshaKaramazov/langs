@@ -20,6 +20,9 @@ pub enum Token {
     Do,
     Return,
 
+    Increment, // ++
+    Decrement, // --
+
     Array,
     LBracket,
     RBracket,
@@ -165,9 +168,11 @@ impl<'a> Lexer<'a> {
                 }
             }
             '+' => {
-                self.input.next();
+            self.input.next();
                 if self.match_next('=') {
                     Token::PlusAssign
+                } else if self.match_next('+') { 
+                    Token::Increment
                 } else {
                     Token::Plus
                 }
@@ -249,6 +254,9 @@ impl<'a> Lexer<'a> {
                 } else if let Some(&'=') = self.input.peek() {
                     self.input.next();
                     Token::MinusAssign
+                } else if let Some(&'-') = self.input.peek() {
+                    self.input.next();
+                    Token::Decrement
                 } else {
                     Token::Minus
                 }
