@@ -385,9 +385,9 @@ impl<'a> Lexer<'a> {
 
             "вернуть" => Token::Return,
 
-            "Нат" => Token::TypeNat,
-            "Цел" => Token::TypeInt,
-            "Десятич" => Token::TypeFloat,
+            "Нат" | "нат" => Token::TypeNat,
+            "Цел" | "цел" => Token::TypeInt,
+            "Десятич" | "дробь" => Token::TypeFloat,
             "Лог" => Token::TypeBool,
             "Символ" => Token::TypeChar,
             "Строка" => Token::TypeString,

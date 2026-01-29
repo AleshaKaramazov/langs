@@ -3,6 +3,7 @@ use std::rc::Rc;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
+    UInt,
     Float,
     Bool,
     String,
@@ -90,6 +91,7 @@ pub enum UnaryOp {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
+    UInt(u64),
     Int(i64),
     Float(f64),
     Bool(bool),

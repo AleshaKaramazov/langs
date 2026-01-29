@@ -300,6 +300,7 @@ impl TypeChecker {
                 ))
             }
             Expr::Int(_) => Ok(Type::Int),
+            Expr::UInt(_) => Ok(Type::UInt),
             Expr::Bool(_) => Ok(Type::Bool),
             Expr::Char(_) => Ok(Type::Char),
             Expr::Float(_) => Ok(Type::Float),
@@ -498,8 +499,8 @@ impl TypeChecker {
 
                 for (i, arg_expr) in args.iter().enumerate() {
                     let arg_ty = self.check_expr(arg_expr)?;
-
-                    if arg_ty != sig.args[i] {
+                    //println!("{:?} -- {:?}", arg_ty, sig.args[i]);
+                    if arg_ty != sig.args[i] && let Expr::Int(n) = arg_expr && *n < 0 {
                         return Err(format!(
                             "Аргумент {} функции {} имеет неверный тип. Ожидалось {:?}, получено {:?}",
                             i + 1,

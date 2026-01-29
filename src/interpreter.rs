@@ -30,7 +30,7 @@ impl Interpreter {
     }
 
     pub fn math_module(native: &mut NativeRegistry) {
-        bind_native!(native, "Степень", |base: i64, exp: i64| {
+        bind_native!(native, "степень", |base: i64, exp: i64| {
             if exp < 0 { 0 } else { base.pow(exp as u32) }
         });
 
@@ -299,6 +299,7 @@ impl Interpreter {
             Expr::PostInc(target) => self.handle_inc_dec(target, 1, false),
             Expr::PostDec(target) => self.handle_inc_dec(target, -1, false),
             Expr::Int(i) => Ok(Value::Int(*i)),
+            Expr::UInt(ui ) => Ok(Value::Uint(*ui)),
             Expr::Float(f) => Ok(Value::Float(*f)),
             Expr::Char(c) => Ok(Value::Char(*c)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
@@ -585,7 +586,13 @@ impl Interpreter {
         op: BinOp,
     ) -> RuntimeResult<Value> {
         if matches!(left, Value::Int(_)) && matches!(right, Value::Float(_)) {
-            //the float type is always on the right side
+            //the float type is always on the LEFT side
+            std::mem::swap(&mut left, &mut right);
+        } else if matches!(left, Value::Int(_)) && matches!(right, Value::Uint(_)) {
+            //the uint type is alwa on the LEFT side
+            std::mem::swap(&mut left, &mut right);
+        } else if matches!(left, Value::Float(_)) && matches!(right, Value::Uint(_)) {
+            //the uint type is left with float
             std::mem::swap(&mut left, &mut right);
         }
         match (left, right, op) {
@@ -611,6 +618,87 @@ impl Interpreter {
             (Value::Int(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
             (Value::Int(l), Value::Int(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
             (Value::Int(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
+
+            (Value::Uint(l), Value::Uint(r), BinOp::Plus) => Ok(Value::Uint(l + r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Sub) => Ok(Value::Uint(l - r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Mult) => Ok(Value::Uint(l * r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Div) => {
+                if r == 0 {
+                    return Err("Деление на ноль!".to_string());
+                }
+                Ok(Value::Uint(l / r))
+            }
+            (Value::Uint(l), Value::Uint(r), BinOp::Mod) => {
+                if r == 0 {
+                    return Err("Деление на ноль (остаток)!".to_string());
+                }
+                Ok(Value::Uint(l % r))
+            }
+
+            (Value::Uint(l), Value::Uint(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Less) => Ok(Value::Bool(l < r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
+
+            //for uint - int 
+            (Value::Uint(l), Value::Int(r), BinOp::Plus) => Ok(Value::Int(l as i64 + r)),
+            (Value::Uint(l), Value::Int(r), BinOp::Sub) => Ok(Value::Int(l as i64 - r)),
+            (Value::Uint(l), Value::Int(r), BinOp::Mult) => Ok(Value::Int(l as i64 * r)),
+            (Value::Uint(l), Value::Int(r), BinOp::Div) => {
+                if r == 0 {
+                    return Err("Деление на ноль!".to_string());
+                }
+                Ok(Value::Uint(l / r as u64))
+            }
+            (Value::Uint(l), Value::Int(r), BinOp::Mod) => {
+                if r == 0 {
+                    return Err("Деление на ноль (остаток)!".to_string());
+                }
+                Ok(Value::Uint(l % r as u64))
+            }
+
+
+            (Value::Uint(l), Value::Int(r), BinOp::Greater) => Ok(Value::Bool(l as i64 > r)),
+            (Value::Uint(l), Value::Int(r), BinOp::Less) => Ok(Value::Bool(l < r as u64 )),
+            (Value::Uint(l), Value::Int(r), BinOp::Equal) => Ok(Value::Bool(l as i64 == r)),
+            (Value::Uint(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l as i64 != r)),
+            (Value::Uint(l), Value::Int(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l as i64 >= r)),
+            (Value::Uint(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l as i64 <= r)),
+            //==================
+
+            (Value::Uint(l), Value::Uint(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Less) => Ok(Value::Bool(l < r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
+            (Value::Uint(l), Value::Uint(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
+
+            // uint -- float
+            (Value::Uint(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l as f64 + r)),
+            (Value::Uint(l), Value::Float(r), BinOp::Sub) => Ok(Value::Float(l as f64 - r)),
+            (Value::Uint(l), Value::Float(r), BinOp::Mult) => Ok(Value::Float(l as f64 * r)),
+            (Value::Uint(l), Value::Float(r), BinOp::Div) => {
+                if r == 0.0 {
+                    return Err("Деление на ноль!".to_string());
+                }
+                Ok(Value::Float(l as f64 / r))
+            }
+            (Value::Uint(l), Value::Float(r), BinOp::Mod) => {
+                if r == 0.0 {
+                    return Err("Деление на ноль (остаток)!".to_string());
+                }
+                Ok(Value::Float(l as f64 % r))
+            }
+
+            (Value::Uint(l), Value::Float(r), BinOp::Greater) => Ok(Value::Bool(l as f64 > r)),
+            (Value::Uint(l), Value::Float(r), BinOp::Less) => Ok(Value::Bool(r > l as f64 )),
+            (Value::Uint(l), Value::Float(r), BinOp::Equal) => Ok(Value::Bool(l as f64 == r)),
+            (Value::Uint(l), Value::Float(r), BinOp::NotEqual) => Ok(Value::Bool(l as f64 != r)),
+            (Value::Uint(l), Value::Float(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l as f64 >= r)),
+            (Value::Uint(l), Value::Float(r), BinOp::LessOrEqual) => Ok(Value::Bool(l as f64 <= r)),
+            //============
 
             (Value::Char(l), Value::Char(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
             (Value::Char(l), Value::Char(r), BinOp::Less) => Ok(Value::Bool(l < r)),

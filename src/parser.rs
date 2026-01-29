@@ -33,13 +33,30 @@ impl<'a> Parser<'a> {
         let name = self.consume_ident();
 
         let mut ret_type = Type::Void;
+        let mut args = Vec::new();
+        if  self.current == Token::LParen {
+            self.advance();
+            while let Token::Ident(arg_name) = &self.current {
+                let name = arg_name.clone();
+                self.advance();
+                self.expect(Token::Colon);
+                let ty = self.parse_type();
+                args.push((name, ty));
+
+                if self.current == Token::Comma {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+            self.expect(Token::RParen);
+        }
         if self.current == Token::Arrow {
             self.advance();
             ret_type = self.parse_type();
-        }
+        } 
 
-        let mut args = Vec::new();
-        if self.current == Token::Arguments {
+        if args.is_empty() && self.current == Token::Arguments {
             self.advance();
             self.expect(Token::Colon);
 
@@ -353,7 +370,8 @@ impl<'a> Parser<'a> {
 
     fn parse_type(&mut self) -> Type {
         let t = match self.current {
-            Token::TypeNat | Token::TypeInt => Type::Int,
+            Token::TypeNat => Type::UInt,
+            Token::TypeInt => Type::Int,
             Token::TypeFloat => Type::Float,
             Token::TypeBool => Type::Bool,
             Token::TypeString => Type::String,

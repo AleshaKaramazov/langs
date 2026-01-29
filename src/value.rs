@@ -17,6 +17,7 @@ pub enum Value {
         env: Rc<Vec<HashMap<String, Value>>>,
     },
     Int(i64),
+    Uint(u64),
     Float(f64),
     Char(char),
     Bool(bool),
