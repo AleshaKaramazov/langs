@@ -555,6 +555,11 @@ impl<'a> Parser<'a> {
                 self.advance();
                 e
             }
+            Token::UInt(v) => {
+                let e = Expr::UInt(*v);
+                self.advance();
+                e
+            }
             Token::Float(f) => {
                 let val = *f;
                 self.advance();

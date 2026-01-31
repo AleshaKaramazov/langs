@@ -68,6 +68,13 @@ impl FromValue for i64 {
         v.expect_int()
     }
 }
+
+impl FromValue for u64 {
+    fn from_value(v: &Value) -> Result<Self, String> {
+        v.expect_usize()
+    }
+}
+
 impl FromValue for f64 {
     fn from_value(v: &Value) -> Result<Self, String> {
         v.expect_float()

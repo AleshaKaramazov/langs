@@ -17,7 +17,7 @@ pub enum Value {
         env: Rc<Vec<HashMap<String, Value>>>,
     },
     Int(i64),
-    Uint(u64),
+    UInt(u64),
     Float(f64),
     Char(char),
     Bool(bool),
@@ -34,6 +34,7 @@ impl fmt::Display for Value {
             Self::Void => write!(f, "пусто"),
             Self::Float(fl) => write!(f, "{}", fl),
             Self::Int(i) => write!(f, "{}", i),
+            Self::UInt(ui) => write!(f, "{}", ui),
             Self::Bool(b) => write!(f, "{}", b),
             Self::String(s) => write!(f, "{}", s.borrow()),
             Self::Array(a) => write!(f, "{:?}", a.borrow()),
@@ -46,7 +47,15 @@ impl Value {
     pub fn expect_int(&self) -> Result<i64, String> {
         match self {
             Value::Int(v) => Ok(*v),
+            Value::UInt(sd) => Ok(*sd as i64),
             _ => Err(format!("Ожидалось Цел, получено {}", self)),
+        }
+    }
+
+    pub fn expect_usize(&self) -> Result<u64, String> {
+        match self {
+            Value::UInt(sd) => Ok(*sd),
+            _ => Err(format!("Ожидалось Нат, получено {}", self)),
         }
     }
 

@@ -36,6 +36,7 @@ pub enum Token {
     TypeChar,
 
     Int(i64),
+    UInt(u64),
     Char(char),
     Float(f64),
     Bool(bool),
@@ -334,6 +335,8 @@ impl<'a> Lexer<'a> {
 
         if is_float {
             Token::Float(s.parse().unwrap())
+        } else if let Ok(p) = s.parse::<u64>() {
+            Token::UInt(p)
         } else {
             Token::Int(s.parse().unwrap())
         }
