@@ -668,13 +668,6 @@ impl Interpreter {
             (Value::Uint(l), Value::Int(r), BinOp::LessOrEqual) => Ok(Value::Bool(l as i64 <= r)),
             //==================
 
-            (Value::Uint(l), Value::Uint(r), BinOp::Greater) => Ok(Value::Bool(l > r)),
-            (Value::Uint(l), Value::Uint(r), BinOp::Less) => Ok(Value::Bool(l < r)),
-            (Value::Uint(l), Value::Uint(r), BinOp::Equal) => Ok(Value::Bool(l == r)),
-            (Value::Uint(l), Value::Uint(r), BinOp::NotEqual) => Ok(Value::Bool(l != r)),
-            (Value::Uint(l), Value::Uint(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l >= r)),
-            (Value::Uint(l), Value::Uint(r), BinOp::LessOrEqual) => Ok(Value::Bool(l <= r)),
-
             // uint -- float
             (Value::Uint(l), Value::Float(r), BinOp::Plus) => Ok(Value::Float(l as f64 + r)),
             (Value::Uint(l), Value::Float(r), BinOp::Sub) => Ok(Value::Float(l as f64 - r)),
@@ -807,7 +800,9 @@ impl Interpreter {
                     .map_err(|e| e.to_string())?;
                 let input = input.trim();
 
-                if let Ok(i) = input.parse::<i64>() {
+                if let Ok(i) = input.parse::<u64>() {
+                    Ok(Value::Uint(i))
+                } else if let Ok(i) = input.parse::<i64>() {
                     Ok(Value::Int(i))
                 } else if let Ok(f) = input.parse::<f64>() {
                     Ok(Value::Float(f))
