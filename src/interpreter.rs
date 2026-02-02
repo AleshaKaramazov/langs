@@ -470,6 +470,15 @@ impl Interpreter {
                             s.borrow_mut().remove(index as usize); 
                             return Ok(Value::Void);
                         }
+                        (Value::Array(s), Value::UInt(index)) => {
+                            if s.borrow().len() - 1 < index as usize {
+                                return Err(
+                                    "длинна массива < индекса".to_string()
+                                );
+                            }
+                            s.borrow_mut().remove(index as usize); 
+                            return Ok(Value::Void);
+                        }
                         _ => {
                             return Err(
                                 "Метод 'Удалить' принимает индекс элемента (ЧИСЛО)".to_string()
@@ -787,7 +796,7 @@ impl Interpreter {
 
     fn call_intrinsic(&self, name: &str, args: Vec<Value>) -> RuntimeResult<Value> {
         match name {
-            "ОтчиститьКонсоль" => {
+            "ЧистКонсоль" => {
                 print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
                 Ok(Value::Void)
             }

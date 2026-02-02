@@ -279,8 +279,8 @@ impl TypeChecker {
                 }
 
                 let ty = self.check_expr(target)?;
-                if ty != Type::Int {
-                    return Err(format!("Инкремент/Декремент работает только с Числами (Int), получено {:?}", ty));
+                if ty != Type::Int && ty != Type::UInt {
+                    return Err(format!("Инкремент/Декремент работает только с Числами (Int | UInt), получено {:?}", ty));
                 }
                 Ok(Type::Int)
             }
@@ -325,9 +325,16 @@ impl TypeChecker {
                             || (l_ty == Type::Float && r_ty == Type::Unknown)
                         {
                             Ok(Type::Float)
-                        } else {
+                        } else if !(l_ty != Type::UInt || r_ty != Type::UInt && r_ty != Type::Int)
+                            || (r_ty == Type::UInt && l_ty == Type::Int)
+                            || (l_ty == Type::Unknown && r_ty == Type::UInt)
+                            || (l_ty == Type::UInt && r_ty == Type::Unknown)
+                        {
+                            Ok(Type::UInt)
+                        }
+                        else {
                             Err(format!(
-                                "Арифметическая операция {:?} требует \"Нат\" или \"Десятич\", получено {:?} и {:?}",
+                                "Арифметическая операция {:?} требует \"Нат\" | \"Цел\" | \"Десятич\", получено {:?} и {:?}",
                                 op, l_ty, r_ty
                             ))
                         }
@@ -340,8 +347,8 @@ impl TypeChecker {
                         }
                     }
                     BinOp::Less | BinOp::Greater | BinOp::LessOrEqual | BinOp::GreaterOrEqual => {
-                        if matches!(l_ty, Type::Int | Type::Float | Type::Unknown)
-                            && matches!(r_ty, Type::Int | Type::Float | Type::Unknown)
+                        if matches!(l_ty, Type::Int | Type::Float | Type::Unknown | Type::UInt)
+                            && matches!(r_ty, Type::Int | Type::Float | Type::Unknown | Type::UInt)
                         {
                             Ok(Type::Bool)
                         } else {
@@ -428,7 +435,7 @@ impl TypeChecker {
                             return Err("Метод 'Добавить' ожидает 1 аргумент".into());
                         }
                         let arg_ty = self.check_expr(&args[0])?;
-                        if arg_ty != *inner_ty {
+                        if arg_ty != *inner_ty && arg_ty != Type::Unknown {
                             return Err(format!(
                                 "Нельзя добавить {:?} в массив типа {:?}",
                                 arg_ty, inner_ty
@@ -471,18 +478,21 @@ impl TypeChecker {
                 args,
                 intrinsic,
             } => {
-                if *intrinsic && name == "Написать" {
-                    for arg in args {
-                        self.check_expr(arg)?;
+                if *intrinsic {
+                    if name == "Написать" {
+                        for arg in args {
+                            self.check_expr(arg)?;
+                        }
+                        return Ok(Type::Void);
+                    } else if name == "ЧистКонсоль" {
+                        return Ok(Type::Void);
                     }
-                    return Ok(Type::Void);
-                } else if *intrinsic && name == "ОтчиститьКонсоль" {
-                    return Ok(Type::Void);
-                }
-                else if *intrinsic && name == "Считать" {
-                    return Ok(Type::Unknown);
+                    else if name == "Считать" {
+                        return Ok(Type::Unknown);
+                    }
                 }
 
+                //println!("name == {}", name);
                 let sig = match self.functions.get(name) {
                     Some(s) => s.clone(),
                     None => return Err(format!("Неизвестная функция: {}", name)),

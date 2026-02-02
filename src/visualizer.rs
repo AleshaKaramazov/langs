@@ -200,7 +200,8 @@ impl Visualizer {
             }
             Stmt::Expr(expr) => {
                 let is_io = match expr {
-                    Expr::Call { name, intrinsic, .. } => *intrinsic && (name == "Написать" || name == "Считать"),
+                    Expr::Call { name, intrinsic, .. } => *intrinsic && 
+                        (name == "Написать" || name == "Считать" || name == "ЧистКонсоль"),
                     Expr::MethodCall { method, .. } => method == "Считать", 
                     _ => false,
                 };
