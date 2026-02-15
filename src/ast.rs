@@ -15,6 +15,12 @@ pub enum Type {
     Infer,
 }
 
+impl Type {
+    pub fn is_numeric(&self) -> bool {
+        matches!(self, Type::Int | Type::UInt | Type::Float | Type::Unknown)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Algorithm {
     pub name: String,

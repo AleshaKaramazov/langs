@@ -150,6 +150,7 @@ impl TypeChecker {
                         } else {
                             if expr_ty != Type::Unknown
                                 && *ty != expr_ty
+                                && !((*ty).is_numeric() || expr_ty.is_numeric())
                                 && match ty {
                                     Type::Array(inner) => **inner != expr_ty,
                                     _ => true,
@@ -202,7 +203,7 @@ impl TypeChecker {
                 let expr_ty = self.check_expr(expr)?;
                 let var_ty = self.env.lookup(name)?;
 
-                if var_ty != Type::Int || expr_ty != Type::Int {
+                if !var_ty.is_numeric() || !expr_ty.is_numeric() {
                     return Err(format!(
                         "Арифметическое присваивание работает только с Числами. Получено: {:?} и {:?}",
                         var_ty, expr_ty
@@ -319,16 +320,12 @@ impl TypeChecker {
                             || (r_ty == Type::Unknown && l_ty == Type::Int)
                         {
                             Ok(Type::Int)
-                        } else if !(l_ty != Type::Float || r_ty != Type::Float && r_ty != Type::Int)
-                            || (r_ty == Type::Float && l_ty == Type::Int)
-                            || (l_ty == Type::Unknown && r_ty == Type::Float)
-                            || (l_ty == Type::Float && r_ty == Type::Unknown)
+                        } else if l_ty == Type::Float && r_ty.is_numeric() 
+                            || r_ty == Type::Float && l_ty.is_numeric()
                         {
                             Ok(Type::Float)
-                        } else if !(l_ty != Type::UInt || r_ty != Type::UInt && r_ty != Type::Int)
-                            || (r_ty == Type::UInt && l_ty == Type::Int)
-                            || (l_ty == Type::Unknown && r_ty == Type::UInt)
-                            || (l_ty == Type::UInt && r_ty == Type::Unknown)
+                        } else if l_ty == Type::UInt && r_ty.is_numeric() 
+                            || r_ty == Type::UInt && l_ty.is_numeric()
                         {
                             Ok(Type::UInt)
                         }
@@ -340,15 +337,15 @@ impl TypeChecker {
                         }
                     }
                     BinOp::Equal | BinOp::NotEqual => {
-                        if l_ty == Type::Unknown || r_ty == Type::Unknown || l_ty == r_ty {
+                        if l_ty == Type::Unknown || r_ty == Type::Unknown || l_ty == r_ty 
+                        || (l_ty.is_numeric() && r_ty.is_numeric()){
                             Ok(Type::Bool)
                         } else {
                             Err("Нельзя сравнивать разные типы".into())
                         }
                     }
                     BinOp::Less | BinOp::Greater | BinOp::LessOrEqual | BinOp::GreaterOrEqual => {
-                        if matches!(l_ty, Type::Int | Type::Float | Type::Unknown | Type::UInt)
-                            && matches!(r_ty, Type::Int | Type::Float | Type::Unknown | Type::UInt)
+                        if l_ty.is_numeric() && r_ty.is_numeric()
                         {
                             Ok(Type::Bool)
                         } else {

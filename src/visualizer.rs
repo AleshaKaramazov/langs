@@ -9,22 +9,347 @@ pub struct Visualizer {
 impl Visualizer {
     pub fn new() -> Self {
         let mut dot = String::new();
-        writeln!(dot, "digraph Algorithm {{").unwrap();
-        writeln!(dot, "  fontname=\"Segoe UI, Roboto, Helvetica, Arial, sans-serif\";").unwrap();
-        writeln!(dot, "  nodesep=0.5; ranksep=0.5;").unwrap();
-        writeln!(dot, "  rankdir=TB;").unwrap();
-        writeln!(dot, "  splines=ortho;").unwrap(); 
-        writeln!(dot, "  concentrate=true;").unwrap();
+        writeln!(dot, "digraph Flowchart {{").unwrap();
         
-        writeln!(dot, "  node [fontname=\"Segoe UI, Roboto\", fontsize=11, shape=box, style=\"filled,rounded\", fillcolor=\"#ECEFF1\", color=\"#455A64\", penwidth=1.0, margin=\"0.2,0.1\"];").unwrap();
-        writeln!(dot, "  edge [fontname=\"Segoe UI, Roboto\", fontsize=9, color=\"#546E7A\", penwidth=1.2, arrowhead=vee];").unwrap();
-
+        writeln!(dot, "  fontname=\"Arial, Helvetica, sans-serif\";").unwrap();
+        writeln!(dot, "  node [fontname=\"Arial, Helvetica, sans-serif\", fontsize=12];").unwrap();
+        writeln!(dot, "  edge [fontname=\"Arial, Helvetica, sans-serif\", fontsize=10];").unwrap();
+        writeln!(dot, "  forcelabels=true;").unwrap(); 
+        
+        writeln!(dot, "  splines=ortho;").unwrap(); 
+        writeln!(dot, "  nodesep=0.8;").unwrap(); 
+        writeln!(dot, "  ranksep=0.6;").unwrap(); 
+        
+        writeln!(dot, "  node [shape=rect, style=\"filled,rounded\", fillcolor=\"#E3F2FD\", color=\"#90CAF9\", penwidth=1];").unwrap();
+        
         Self { dot, node_count: 0 }
     }
 
     fn next_id(&mut self) -> String {
         self.node_count += 1;
-        format!("n{}", self.node_count)
+        format!("node_{}", self.node_count)
+    }
+
+    pub fn translate(mut self, alg: Algorithm) -> String {
+        let start_id = self.next_id();
+        let args_str: Vec<String> = alg.args.iter().map(|(n, _)| n.clone()).collect();
+        let start_label = if args_str.is_empty() {
+            format!("НАЧАЛО\n{}", alg.name)
+        } else {
+            format!("НАЧАЛО\n{}({})", alg.name, args_str.join(", "))
+        };
+        
+        self.emit_node(&start_id, &start_label, "terminator", "#C8E6C9", "#2E7D32");
+
+        let (entry, exit) = self.process_block(&alg.body);
+
+        if let Some(e) = entry {
+            self.emit_edge(&start_id, &e);
+        }
+
+        let end_id = self.next_id();
+        self.emit_node(&end_id, "КОНЕЦ", "terminator", "#FFCDD2", "#C62828");
+
+        if let Some(ex) = exit {
+            self.emit_edge(&ex, &end_id);
+        } else if alg.body.is_empty() {
+             self.emit_edge(&start_id, &end_id);
+        }
+
+        self.dot.push_str("}\n");
+        self.dot
+    }
+
+    fn process_block(&mut self, stmts: &[Stmt]) -> (Option<String>, Option<String>) {
+        if stmts.is_empty() {
+            return (None, None);
+        }
+
+        let mut first_node = None;
+        let mut prev_exit_node: Option<String> = None;
+
+        for stmt in stmts {
+            let (curr_entry, curr_exit) = self.process_stmt(stmt);
+
+            if first_node.is_none() {
+                first_node = Some(curr_entry.clone());
+            }
+
+            if let Some(prev) = prev_exit_node {
+                self.emit_edge(&prev, &curr_entry);
+            }
+
+            match stmt {
+                Stmt::Return(_) | Stmt::Break | Stmt::Continue => {
+                    prev_exit_node = None;
+                }
+                _ => {
+                    prev_exit_node = curr_exit;
+                }
+            }
+        }
+
+        (first_node, prev_exit_node)
+    }
+
+    fn process_stmt(&mut self, stmt: &Stmt) -> (String, Option<String>) {
+        match stmt {
+            Stmt::Let { name, expr, .. } => {
+                let id = self.next_id();
+                let label = match expr {
+                    Some(e) => format!("{} := {}", name, self.fmt_expr(e)),
+                    None => format!("Объявить {}", name),
+                };
+                self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                (id.clone(), Some(id))
+            }
+            Stmt::Assign { name, expr } => {
+                let id = self.next_id();
+                let label = format!("{} := {}", name, self.fmt_expr(expr));
+                self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                (id.clone(), Some(id))
+            }
+            Stmt::AssignAdd { name, expr } => {
+                let id = self.next_id();
+                let label = format!("{} ← {} + {}", name, name, self.fmt_expr(expr));
+                self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                (id.clone(), Some(id))
+            }
+            Stmt::AssignSub { name, expr } => {
+                let id = self.next_id();
+                let label = format!("{} ← {} - {}", name, name, self.fmt_expr(expr));
+                self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                (id.clone(), Some(id))
+            }
+            Stmt::AssignMult { name, expr } => {
+                let id = self.next_id();
+                let label = format!("{} ← {} × {}", name, name, self.fmt_expr(expr));
+                self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                (id.clone(), Some(id))
+            }
+            Stmt::AssignDiv { name, expr } => {
+                let id = self.next_id();
+                let label = format!("{} ← {} / {}", name, name, self.fmt_expr(expr));
+                self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                (id.clone(), Some(id))
+            }
+            Stmt::Expr(expr) => {
+                let id = self.next_id();
+                let label = self.fmt_expr(expr);
+                
+                let is_io = match expr {
+                    Expr::Call { name, intrinsic, .. } => *intrinsic && (name == "Написать" || name == "Считать" || name == "ЧистКонсоль"),
+                    Expr::MethodCall { method, .. } => method == "Считать", 
+                    _ => false,
+                };
+
+                if is_io {
+                    self.emit_node(&id, &label, "io", "#FFE0B2", "#FB8C00");
+                } else {
+                    self.emit_node(&id, &label, "process", "#E3F2FD", "#42A5F5");
+                }
+                (id.clone(), Some(id))
+            }
+            Stmt::Return(maybe_expr) => {
+                let id = self.next_id();
+                let label = match maybe_expr {
+                    Some(e) => format!("Вернуть {}", self.fmt_expr(e)),
+                    None => "Вернуть".to_string(),
+                };
+                self.emit_node(&id, &label, "terminator", "#FFCDD2", "#E53935");
+                (id, None)
+            }
+            Stmt::Break => {
+                let id = self.next_id();
+                self.emit_node(&id, "ПРЕРВАТЬ", "terminator", "#FFCCBC", "#D84315");
+                (id, None)
+            }
+            Stmt::Continue => {
+                let id = self.next_id();
+                self.emit_node(&id, "ПРОДОЛЖИТЬ", "terminator", "#FFCCBC", "#D84315");
+                (id, None)
+            }
+            Stmt::If { cond, then_body, else_if, else_body } => {
+                let cond_id = self.next_id();
+                let label = format!("{}?", self.fmt_expr(cond));
+                self.emit_node(&cond_id, &label, "decision", "#FFF9C4", "#FBC02D");
+
+                let merge_id = self.next_id();
+                writeln!(self.dot, "  {} [shape=point, width=0];", merge_id).unwrap();
+
+                let (then_entry, then_exit) = self.process_block(then_body);
+                if let Some(entry) = then_entry {
+                    self.emit_edge_label(&cond_id, &entry, "Да", "green");
+                    if let Some(exit) = then_exit {
+                        self.emit_edge(&exit, &merge_id);
+                    }
+                } else {
+                    self.emit_edge_label(&cond_id, &merge_id, "Да", "green");
+                }
+
+                let mut current_cond_id = cond_id.clone();
+                
+                for (elif_cond, elif_body) in else_if {
+                    let elif_id = self.next_id();
+                    let e_label = format!("{}?", self.fmt_expr(elif_cond));
+                    self.emit_node(&elif_id, &e_label, "decision", "#FFF9C4", "#FBC02D");
+                    
+                    self.emit_edge_label(&current_cond_id, &elif_id, "Нет", "red");
+                    
+                    let (b_entry, b_exit) = self.process_block(elif_body);
+                    if let Some(entry) = b_entry {
+                        self.emit_edge_label(&elif_id, &entry, "Да", "green");
+                        if let Some(exit) = b_exit {
+                            self.emit_edge(&exit, &merge_id);
+                        }
+                    } else {
+                        self.emit_edge_label(&elif_id, &merge_id, "Да", "green");
+                    }
+                    current_cond_id = elif_id;
+                }
+
+                if let Some(body) = else_body {
+                    let (else_entry, else_exit) = self.process_block(body);
+                    if let Some(entry) = else_entry {
+                        self.emit_edge_label(&current_cond_id, &entry, "Нет", "red");
+                        if let Some(exit) = else_exit {
+                            self.emit_edge(&exit, &merge_id);
+                        }
+                    } else {
+                        self.emit_edge_label(&current_cond_id, &merge_id, "Нет", "red");
+                    }
+                } else {
+                    self.emit_edge_label(&current_cond_id, &merge_id, "Нет", "red");
+                }
+
+                (cond_id, Some(merge_id))
+            }
+            Stmt::While { cond, body } => {
+                let check_id = self.next_id();
+                let label = format!("Пока {}?", self.fmt_expr(cond));
+                self.emit_node(&check_id, &label, "decision", "#FFF9C4", "#FBC02D");
+
+                let (b_entry, b_exit) = self.process_block(body);
+
+                if let Some(entry) = b_entry {
+                    self.emit_edge_label(&check_id, &entry, "Да", "green");
+                    if let Some(exit) = b_exit {
+                        writeln!(self.dot, "  {} -> {} [constraint=false, color=\"#546E7A\"];", exit, check_id).unwrap();
+                    }
+                } else {
+                    writeln!(self.dot, "  {} -> {} [xlabel=\"Да\", fontcolor=\"#2E7D32\", constraint=false];", check_id, check_id).unwrap();
+                }
+                
+                let exit_id = self.next_id();
+                writeln!(self.dot, "  {} [shape=point, width=0];", exit_id).unwrap();
+                self.emit_edge_label(&check_id, &exit_id, "Нет", "red");
+
+                (check_id, Some(exit_id))
+            }
+            Stmt::For { var, start, cont: _, end, body } => {
+                let init_id = self.next_id();
+                let init_label = format!("{} = {}", var, self.fmt_expr(start));
+                self.emit_node(&init_id, &init_label, "preparation", "#E1BEE7", "#8E24AA");
+
+                let cond_id = self.next_id();
+                let cond_label = format!("{} <= {}?", var, self.fmt_expr(end));
+                self.emit_node(&cond_id, &cond_label, "decision", "#FFF9C4", "#FBC02D");
+
+                self.emit_edge(&init_id, &cond_id);
+
+                let (b_entry, b_exit) = self.process_block(body);
+                
+                let inc_id = self.next_id();
+                let inc_label = format!("{} += 1", var);
+                self.emit_node(&inc_id, &inc_label, "process", "#F3E5F5", "#8E24AA");
+
+                if let Some(entry) = b_entry {
+                    self.emit_edge_label(&cond_id, &entry, "Да", "green");
+                    if let Some(exit) = b_exit {
+                         self.emit_edge(&exit, &inc_id);
+                    }
+                } else {
+                     self.emit_edge_label(&cond_id, &inc_id, "Да", "green");
+                }
+
+                writeln!(self.dot, "  {} -> {} [constraint=false, color=\"#546E7A\"];", inc_id, cond_id).unwrap();
+
+                let exit_id = self.next_id();
+                writeln!(self.dot, "  {} [shape=point, width=0];", exit_id).unwrap();
+                self.emit_edge_label(&cond_id, &exit_id, "Нет", "red");
+
+                (init_id, Some(exit_id))
+            }
+            Stmt::ForEach { var, collection, body } => {
+                let init_id = self.next_id();
+                let init_label = format!("Итератор\n{}", self.fmt_expr(collection));
+                self.emit_node(&init_id, &init_label, "preparation", "#E1BEE7", "#8E24AA");
+
+                let check_id = self.next_id();
+                self.emit_node(&check_id, "Есть элементы?", "decision", "#FFF9C4", "#FBC02D");
+                self.emit_edge(&init_id, &check_id);
+
+                let fetch_id = self.next_id();
+                let fetch_label = format!("{} = след.", var);
+                self.emit_node(&fetch_id, &fetch_label, "process", "#E1BEE7", "#8E24AA");
+                
+                self.emit_edge_label(&check_id, &fetch_id, "Да", "green");
+
+                let (b_entry, b_exit) = self.process_block(body);
+                
+                if let Some(entry) = b_entry {
+                    self.emit_edge(&fetch_id, &entry);
+                    if let Some(exit) = b_exit {
+                        writeln!(self.dot, "  {} -> {} [constraint=false, color=\"#546E7A\"];", exit, check_id).unwrap();
+                    }
+                } else {
+                     writeln!(self.dot, "  {} -> {} [constraint=false, color=\"#546E7A\"];", fetch_id, check_id).unwrap();
+                }
+
+                let exit_id = self.next_id();
+                writeln!(self.dot, "  {} [shape=point, width=0];", exit_id).unwrap();
+                self.emit_edge_label(&check_id, &exit_id, "Нет", "red");
+
+                (init_id, Some(exit_id))
+            }
+        }
+    }
+
+
+    fn emit_node(&mut self, id: &str, label: &str, kind: &str, fill: &str, stroke: &str) {
+        let safe_label = label.replace("\"", "\\\"");
+        
+        let shape_attr = match kind {
+            "terminator" => "shape=box, style=\"filled,rounded\"", 
+            "process" => "shape=box, style=\"filled\"",
+            "decision" => "shape=diamond, style=\"filled\"",
+            "io" => "shape=parallelogram, style=\"filled\"",
+            "preparation" => "shape=hexagon, style=\"filled\"",
+            _ => "shape=box, style=\"filled\"",
+        };
+
+        writeln!(
+            self.dot,
+            "  {} [label=\"{}\", {}, fillcolor=\"{}\", color=\"{}\"];",
+            id, safe_label, shape_attr, fill, stroke
+        ).unwrap();
+    }
+
+    fn emit_edge(&mut self, from: &str, to: &str) {
+         writeln!(self.dot, "  {} -> {} [color=\"#546E7A\"];", from, to).unwrap();
+    }
+
+    fn emit_edge_label(&mut self, from: &str, to: &str, label: &str, color: &str) {
+        let font_color = match color {
+            "green" => "#2E7D32",
+            "red" => "#C62828",
+            _ => "black"
+        };
+        writeln!(
+            self.dot, 
+            "  {} -> {} [xlabel=\"{}\", fontcolor=\"{}\", color=\"#546E7A\", fontsize=10];", 
+            from, to, label, font_color
+        ).unwrap();
     }
 
     fn fmt_expr(&self, expr: &Expr) -> String {
@@ -32,397 +357,47 @@ impl Visualizer {
             Expr::UInt(i) => i.to_string(),
             Expr::Int(i) => i.to_string(),
             Expr::Float(f) => format!("{:.2}", f),
-            Expr::Bool(b) => (if *b { "ИСТИНА" } else { "ЛОЖЬ" }).to_string(),
-            Expr::String(s) => format!("\\\"{}\\\"", s.replace("\"", "\\\"")),
+            Expr::Bool(b) => (if *b { "Истина" } else { "Ложь" }).to_string(),
+            Expr::String(s) => format!("\"{}\"", s), 
             Expr::Char(c) => format!("'{}'", c),
             Expr::Var(v) => v.clone(),
-            Expr::Array(elements) => {
-                let parts: Vec<String> = elements.iter().map(|e| self.fmt_expr(e)).collect();
-                format!("[{}]", parts.join(", "))
-            }
-            Expr::Index { target, index } => {
-                format!("{}[{}]", self.fmt_expr(target), self.fmt_expr(index))
-            }
+            Expr::Array(_) => "[...]".to_string(),
+            Expr::Index { target, index } => format!("{}[{}]", self.fmt_expr(target), self.fmt_expr(index)),
             Expr::Unary { op, right } => {
-                let s = match op {
-                    UnaryOp::Not => "НЕ ",
-                };
+                let s = match op { UnaryOp::Not => "НЕ " };
                 format!("{}{}", s, self.fmt_expr(right))
             }
             Expr::Binary { left, op, right } => {
                 let op_str = match op {
-                    BinOp::Plus => "+",
-                    BinOp::Sub => "-",
-                    BinOp::Mult => "×",
-                    BinOp::Div => "/",
-                    BinOp::Mod => "%",
-                    BinOp::Equal => "=",
-                    BinOp::Less => "<",
-                    BinOp::Greater => ">",
-                    BinOp::Or => "ИЛИ",
-                    BinOp::And => "И",
-                    BinOp::NotEqual => "≠",
-                    BinOp::GreaterOrEqual => "≥",
-                    BinOp::LessOrEqual => "≤",
+                    BinOp::Plus => "+", BinOp::Sub => "-", BinOp::Mult => "×", BinOp::Div => "/",
+                    BinOp::Mod => "%", BinOp::Equal => "=", BinOp::Less => "<", BinOp::Greater => ">",
+                    BinOp::Or => "ИЛИ", BinOp::And => "И", BinOp::NotEqual => "≠",
+                    BinOp::GreaterOrEqual => "≥", BinOp::LessOrEqual => "≤",
                 };
                 format!("{} {} {}", self.fmt_expr(left), op_str, self.fmt_expr(right))
             }
-            Expr::Call { name, args, intrinsic } => {
-                let formatted_args: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
-                let prefix = if *intrinsic { "!" } else { "" };
-                let args_str = formatted_args.join(", ");
-                if args_str.len() > 30 {
-                    format!("{}{}(...)", prefix, name)
-                } else {
-                    format!("{}{}({})", prefix, name, args_str)
-                }
+            Expr::Call { name, args, .. } => {
+                 let args_str: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
+                 if name == "Написать" || name == "Считать" {
+                      args_str.join(", ")
+                 } else {
+                      format!("{}({})", name, args_str.join(", "))
+                 }
             }
             Expr::MethodCall { target, method, args } => {
-                let formatted_args: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
-                format!("{}.{}({})", self.fmt_expr(target), method, formatted_args.join(", "))
+                let args_str: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
+                if args_str.is_empty() {
+                    format!("{}.{}", self.fmt_expr(target), method)
+                } else {
+                    format!("{}.{}({})", self.fmt_expr(target), method, args_str.join(", "))
+                }
             }
-            Expr::NativeCall { path, args } => {
-                let formatted_args: Vec<String> = args.iter().map(|a| self.fmt_expr(a)).collect();
-                format!("{}[{}]", path, formatted_args.join(", "))
-            }
-            Expr::Lambda { param, .. } => format!("λ({}) -> ...", param),
+            Expr::NativeCall { path, .. } => format!("Нативная[{}]", path),
+            Expr::Lambda { .. } => "λ(...)".to_string(),
             Expr::PreInc(e) => format!("++{}", self.fmt_expr(e)),
             Expr::PreDec(e) => format!("--{}", self.fmt_expr(e)),
             Expr::PostInc(e) => format!("{}++", self.fmt_expr(e)),
             Expr::PostDec(e) => format!("{}--", self.fmt_expr(e)),
-        }
-    }
-
-    pub fn translate(mut self, alg: Algorithm) -> String {
-        let start_node = self.next_id();
-        let args_str: Vec<String> = alg.args.iter().map(|(n, _)| n.clone()).collect();
-        let label = if args_str.is_empty() {
-            format!("НАЧАЛО: {}", alg.name)
-        } else {
-            format!("НАЧАЛО: {}\\n({})", alg.name, args_str.join(", "))
-        };
-        
-        writeln!(
-            self.dot,
-            "  {} [label=\"{}\", shape=rect, style=\"filled,rounded\", fillcolor=\"#2196F3\", fontcolor=\"white\", penwidth=0];",
-            start_node, label
-        ).unwrap();
-
-        let (body_entry, body_exit) = self.translate_block(&alg.body);
-
-        let end_node = self.next_id();
-        writeln!(
-            self.dot,
-            "  {} [label=\"КОНЕЦ\", shape=rect, style=\"filled,rounded\", fillcolor=\"#2196F3\", fontcolor=\"white\", penwidth=0];",
-            end_node
-        ).unwrap();
-
-        if let Some(entry) = body_entry {
-            writeln!(self.dot, "  {} -> {};", start_node, entry).unwrap();
-            if let Some(exit) = body_exit {
-                writeln!(self.dot, "  {} -> {};", exit, end_node).unwrap();
-            }
-        } else {
-            writeln!(self.dot, "  {} -> {};", start_node, end_node).unwrap();
-        }
-
-        self.dot.push_str("}\n");
-        self.dot
-    }
-
-    fn translate_block(&mut self, stmts: &[Stmt]) -> (Option<String>, Option<String>) {
-        if stmts.is_empty() {
-            return (None, None);
-        }
-
-        let mut first_entry = None;
-        let mut prev_exit: Option<String> = None;
-
-        for stmt in stmts {
-            let (curr_entry, curr_exit) = self.translate_stmt(stmt);
-
-            if first_entry.is_none() {
-                first_entry = Some(curr_entry.clone());
-            }
-
-            if let Some(prev) = prev_exit {
-                writeln!(self.dot, "  {} -> {};", prev, curr_entry).unwrap();
-            }
-
-            match stmt {
-                Stmt::Return(_) | Stmt::Break | Stmt::Continue => {
-                    prev_exit = None; 
-                }
-                _ => {
-                    prev_exit = Some(curr_exit);
-                }
-            }
-        }
-        
-        (first_entry, prev_exit)
-    }
-
-    fn translate_stmt(&mut self, stmt: &Stmt) -> (String, String) {
-        let id = self.next_id();
-
-        match stmt {
-            Stmt::Let { name, expr, .. } => {
-                let expr_str = match expr {
-                    Some(e) => self.fmt_expr(e),
-                    None => "NULL".to_string(),
-                };
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"Пусть {} = {}\"];",
-                    id, name, expr_str
-                ).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::Assign { name, expr } => {
-                writeln!(self.dot, "  {} [label=\"{} := {}\"];", id, name, self.fmt_expr(expr)).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::AssignAdd { name, expr } => {
-                writeln!(self.dot, "  {} [label=\"{} += {}\"];", id, name, self.fmt_expr(expr)).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::AssignSub { name, expr } => {
-                writeln!(self.dot, "  {} [label=\"{} -= {}\"];", id, name, self.fmt_expr(expr)).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::AssignMult { name, expr } => {
-                writeln!(self.dot, "  {} [label=\"{} *= {}\"];", id, name, self.fmt_expr(expr)).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::AssignDiv { name, expr } => {
-                writeln!(self.dot, "  {} [label=\"{} /= {}\"];", id, name, self.fmt_expr(expr)).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::Expr(expr) => {
-                let is_io = match expr {
-                    Expr::Call { name, intrinsic, .. } => *intrinsic && 
-                        (name == "Написать" || name == "Считать" || name == "ЧистКонсоль"),
-                    Expr::MethodCall { method, .. } => method == "Считать", 
-                    _ => false,
-                };
-
-                let label = self.fmt_expr(expr);
-                
-                if is_io {
-                    writeln!(
-                        self.dot, 
-                        "  {} [label=\"{}\", shape=parallelogram, fillcolor=\"#C8E6C9\", color=\"#2E7D32\"];", 
-                        id, label
-                    ).unwrap();
-                } else {
-                    writeln!(self.dot, "  {} [label=\"{}\"];", id, label).unwrap();
-                }
-                (id.clone(), id)
-            }
-            Stmt::Return(maybe_expr) => {
-                let label = match maybe_expr {
-                    Some(e) => format!("ВЕРНУТЬ {}", self.fmt_expr(e)),
-                    None => "ВЕРНУТЬ".to_string(),
-                };
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"{}\", shape=cds, fillcolor=\"#FFCDD2\", color=\"#C62828\"];",
-                    id, label
-                ).unwrap();
-                (id.clone(), id) 
-            }
-            Stmt::Break => {
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"ПРЕРВАТЬ\", shape=trapezium, fillcolor=\"#FFE0B2\", color=\"#EF6C00\"];",
-                    id
-                ).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::Continue => {
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"ПРОДОЛЖИТЬ\", shape=invtrapezium, fillcolor=\"#FFE0B2\", color=\"#EF6C00\"];",
-                    id
-                ).unwrap();
-                (id.clone(), id)
-            }
-            Stmt::If { cond, then_body, else_if, else_body } => {
-                let cond_str = self.fmt_expr(cond);
-                writeln!(
-                    self.dot, 
-                    "  {} [label=\"{}?\", shape=diamond, fillcolor=\"#FFF9C4\", color=\"#FBC02D\"];", 
-                    id, cond_str
-                ).unwrap();
-
-                let merge_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"\", shape=point, width=0];", merge_id).unwrap();
-
-                let (then_entry, then_exit) = self.translate_block(then_body);
-                if let Some(entry) = then_entry {
-                    writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", id, entry).unwrap();
-                    if let Some(exit) = then_exit {
-                        writeln!(self.dot, "  {} -> {};", exit, merge_id).unwrap();
-                    }
-                } else {
-                    writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", id, merge_id).unwrap();
-                }
-
-                let mut last_cond_id = id.clone();
-
-                for (elif_cond, elif_body) in else_if {
-                    let elif_id = self.next_id();
-                    writeln!(
-                        self.dot,
-                        "  {} [label=\"{}?\", shape=diamond, fillcolor=\"#FFF9C4\", color=\"#FBC02D\"];",
-                        elif_id, self.fmt_expr(elif_cond)
-                    ).unwrap();
-
-                    writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", last_cond_id, elif_id).unwrap();
-
-                    let (b_entry, b_exit) = self.translate_block(elif_body);
-                    if let Some(entry) = b_entry {
-                        writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", elif_id, entry).unwrap();
-                        if let Some(exit) = b_exit {
-                            writeln!(self.dot, "  {} -> {};", exit, merge_id).unwrap();
-                        }
-                    } else {
-                         writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", elif_id, merge_id).unwrap();
-                    }
-                    last_cond_id = elif_id;
-                }
-
-                if let Some(body) = else_body {
-                    let (else_entry, else_exit) = self.translate_block(body);
-                    if let Some(entry) = else_entry {
-                        writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", last_cond_id, entry).unwrap();
-                        if let Some(exit) = else_exit {
-                            writeln!(self.dot, "  {} -> {};", exit, merge_id).unwrap();
-                        }
-                    } else {
-                         writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", last_cond_id, merge_id).unwrap();
-                    }
-                } else {
-                    writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", last_cond_id, merge_id).unwrap();
-                }
-
-                (id, merge_id)
-            }
-            Stmt::While { cond, body } => {
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"Пока {}?\", shape=diamond, fillcolor=\"#BBDEFB\", color=\"#1976D2\"];",
-                    id, self.fmt_expr(cond)
-                ).unwrap();
-
-                let (b_entry, b_exit) = self.translate_block(body);
-                
-                if let Some(entry) = b_entry {
-                    writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", id, entry).unwrap();
-                    
-                    if let Some(exit) = b_exit {
-                        writeln!(
-                            self.dot, 
-                            "  {} -> {} [constraint=false, style=dashed, color=\"#90A4AE\"];", 
-                            exit, id
-                        ).unwrap();
-                    }
-                } else {
-                    writeln!(self.dot, "  {} -> {} [label=\"да\"];", id, id).unwrap();
-                }
-
-                let exit_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"\", shape=point, width=0];", exit_id).unwrap();
-                writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", id, exit_id).unwrap();
-
-                (id, exit_id)
-            }
-            Stmt::For { var, start, cont, end, body } => {
-                let init_expr = format!("{} = {}", var, self.fmt_expr(start));
-                writeln!(
-                    self.dot, "  {} [label=\"{}\", shape=hexagon, fillcolor=\"#E1BEE7\", color=\"#7B1FA2\"];", 
-                    id, init_expr
-                ).unwrap();
-
-                let cond_id = self.next_id();
-                let op = if *cont { "<=" } else { "<" };
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"{} {} {}?\", shape=diamond, fillcolor=\"#BBDEFB\", color=\"#1976D2\"];",
-                    cond_id, var, op, self.fmt_expr(end)
-                ).unwrap();
-
-                writeln!(self.dot, "  {} -> {};", id, cond_id).unwrap();
-
-                let (b_entry, b_exit) = self.translate_block(body);
-                
-                let inc_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"{} += 1\", style=dashed];", inc_id, var).unwrap();
-
-                if let Some(entry) = b_entry {
-                    writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", cond_id, entry).unwrap();
-                    if let Some(exit) = b_exit {
-                        writeln!(self.dot, "  {} -> {};", exit, inc_id).unwrap();
-                    }
-                } else {
-                    writeln!(self.dot, "  {} -> {} [label=\"да\"];", cond_id, inc_id).unwrap();
-                }
-
-                writeln!(self.dot, "  {} -> {} [constraint=false, style=dashed, color=\"#90A4AE\"];", inc_id, cond_id).unwrap();
-
-                let exit_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"\", shape=point, width=0];", exit_id).unwrap();
-                writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", cond_id, exit_id).unwrap();
-
-                (id, exit_id)
-            }
-            Stmt::ForEach { var, collection, body } => {
-                let coll_str = self.fmt_expr(collection);
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"Итератор для {}\", shape=hexagon, fillcolor=\"#E1BEE7\", color=\"#7B1FA2\"];",
-                    id, coll_str
-                ).unwrap();
-
-                let check_id = self.next_id();
-                writeln!(
-                    self.dot,
-                    "  {} [label=\"Есть элементы?\", shape=diamond, fillcolor=\"#BBDEFB\", color=\"#1976D2\"];",
-                    check_id
-                ).unwrap();
-
-                writeln!(self.dot, "  {} -> {};", id, check_id).unwrap();
-
-                let next_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"{} = След. элемент\"];", next_id, var).unwrap();
-
-                writeln!(self.dot, "  {} -> {} [label=\"да\", fontcolor=\"#2E7D32\"];", check_id, next_id).unwrap();
-
-                let (b_entry, b_exit) = self.translate_block(body);
-                
-                if let Some(entry) = b_entry {
-                    writeln!(self.dot, "  {} -> {};", next_id, entry).unwrap();
-                    if let Some(exit) = b_exit {
-                        writeln!(
-                            self.dot, 
-                            "  {} -> {} [constraint=false, style=dashed, color=\"#90A4AE\"];", 
-                            exit, check_id
-                        ).unwrap();
-                    }
-                } else {
-                     writeln!(
-                        self.dot, 
-                        "  {} -> {} [constraint=false, style=dashed, color=\"#90A4AE\"];", 
-                        next_id, check_id
-                    ).unwrap();
-                }
-
-                let exit_id = self.next_id();
-                writeln!(self.dot, "  {} [label=\"\", shape=point, width=0];", exit_id).unwrap();
-                writeln!(self.dot, "  {} -> {} [label=\"нет\", fontcolor=\"#C62828\"];", check_id, exit_id).unwrap();
-
-                (id, exit_id)
-            }
         }
     }
 }

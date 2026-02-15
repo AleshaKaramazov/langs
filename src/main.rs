@@ -64,6 +64,7 @@ fn main() {
                 process::exit(1);
             }
             println!("Граф сохранен в graph.dot.");
+            println!("что бы создать картинку: dot -Tpng graph.dot -o graph.png")
         } else {
             eprintln!("ОШИБКА: Нечего рисовать, алгоритм 'Главная' не найден.");
         }
