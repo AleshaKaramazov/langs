@@ -119,8 +119,8 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        if ch.is_ascii_digit() {
-            return self.read_number();
+        if ch.is_ascii_digit(){
+            return self.read_number(false);
         }
 
         if is_ident_start(ch) {
@@ -252,7 +252,10 @@ impl<'a> Lexer<'a> {
                 if let Some(&'>') = self.input.peek() {
                     self.input.next();
                     Token::Arrow
-                } else if let Some(&'=') = self.input.peek() {
+                } else if let Some(q) = self.input.peek() && q.is_ascii_digit() {
+                    self.read_number(true)
+                } 
+                else if let Some(&'=') = self.input.peek() {
                     self.input.next();
                     Token::MinusAssign
                 } else if let Some(&'-') = self.input.peek() {
@@ -304,7 +307,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_number(&mut self) -> Token {
+    fn read_number(&mut self, sign: bool) -> Token {
+        let sign = if sign {-1} else {1};
         let mut s = String::new();
         let mut is_float = false;
 
@@ -333,12 +337,13 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        if is_float {
-            Token::Float(s.parse().unwrap())
-        } else if let Ok(p) = s.parse::<u64>() {
-            Token::UInt(p)
+        if is_float && let Ok(f) = s.parse::<f64>() {
+            Token::Float(f * sign as f64)
+        } else if let Ok(p) = s.parse::<i64>() {
+            Token::Int(p * sign)
         } else {
-            Token::Int(s.parse().unwrap())
+            println!("parsed: {}", s);
+            Token::UInt(s.parse::<u64>().unwrap())
         }
     }
 
