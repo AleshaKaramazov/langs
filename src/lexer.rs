@@ -252,9 +252,7 @@ impl<'a> Lexer<'a> {
                 if let Some(&'>') = self.input.peek() {
                     self.input.next();
                     Token::Arrow
-                } else if let Some(q) = self.input.peek() && q.is_ascii_digit() {
-                    self.read_number(true)
-                } 
+                }
                 else if let Some(&'=') = self.input.peek() {
                     self.input.next();
                     Token::MinusAssign

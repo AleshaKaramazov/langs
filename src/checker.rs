@@ -270,6 +270,15 @@ impl TypeChecker {
 
     fn check_expr(&mut self, expr: &Expr) -> Result<Type, String> {
         match expr {
+            Expr::Cast { target_type, expr: inner_expr } => {
+                let inner_ty = self.check_expr(inner_expr)?;
+                
+                if inner_ty.is_numeric() && target_type.is_numeric() {
+                    Ok(target_type.clone())
+                } else {
+                    Err(format!("Нельзя преобразовать тип {:?} в {:?}", inner_ty, target_type))
+                }
+            }
             Expr::PreInc(target) 
                 | Expr::PreDec(target) 
                 | Expr::PostInc(target) 
@@ -283,7 +292,7 @@ impl TypeChecker {
                 if !ty.is_numeric() {
                     return Err(format!("Инкремент/Декремент работает только с Числами (Int | UInt | Float), получено {:?}", ty));
                 }
-                Ok(Type::Int)
+                Ok(ty)
             }
             Expr::NativeCall { .. } => Ok(Type::Unknown),
             Expr::Lambda {

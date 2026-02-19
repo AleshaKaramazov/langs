@@ -110,8 +110,10 @@ impl Interpreter {
                     None => match ty {
                         Type::String => Value::String(Rc::new(RefCell::new(String::new()))),
                         Type::Int => Value::Int(0),
+                        Type::UInt => Value::UInt(0),
                         Type::Float => Value::Float(0.0),
                         Type::Bool => Value::Bool(false),
+                        Type::Char => Value::Char('\0'),
                         Type::Array(_) => Value::Array(Rc::new(RefCell::new(Vec::new()))),
                         _ => Value::Void,
                     },
@@ -336,6 +338,39 @@ impl Interpreter {
             Expr::Char(c) => Ok(Value::Char(*c)),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::String(s) => Ok(Value::String(Rc::new(RefCell::new(s.clone())))),
+            Expr::Cast { target_type, expr: inner_expr } => {
+                let val = self.eval_expr(inner_expr)?;
+                match target_type {
+                    Type::Float => {
+                        let f = match val {
+                            Value::Int(i) => i as f64,
+                            Value::UInt(u) => u as f64,
+                            Value::Float(f) => f,
+                            _ => return Err(format!("Невозможно привести {} к Десятич", val)),
+                        };
+                        Ok(Value::Float(f))
+                    }
+                    Type::Int => {
+                        let i = match val {
+                            Value::Int(i) => i,
+                            Value::UInt(u) => u as i64,
+                            Value::Float(f) => f as i64,
+                            _ => return Err(format!("Невозможно привести {} к Цел", val)),
+                        };
+                        Ok(Value::Int(i))
+                    }
+                    Type::UInt => {
+                        let u = match val {
+                            Value::Int(i) => if i < 0 { 0 } else { i as u64 },
+                            Value::UInt(u) => u,
+                            Value::Float(f) => f as u64,
+                            _ => return Err(format!("Невозможно привести {} к Нат", val)),
+                        };
+                        Ok(Value::UInt(u))
+                    }
+                    _ => Err(format!("Приведение к типу {:?} пока не реализовано", target_type)),
+                }
+            }
             Expr::Lambda { param, body, .. } => Ok(Value::Closure {
                 param: param.clone(),
                 body: body.clone(),
@@ -576,6 +611,18 @@ impl Interpreter {
                         }
                         Ok(arr[i].clone())
                     }
+                    (Value::Array(arr), Value::UInt(i)) => {
+                        let arr = arr.borrow();
+                        if i as usize >= arr.len() {
+                            return Err(format!(
+                                "Индекс массива вне границ: длина {}, индекс {}",
+                                arr.len(),
+                                i
+                            ));
+                        }
+                        Ok(arr[i as usize].clone())
+                    }
+
                     (Value::Array(_), t) => Err(format!("Индекс должен быть Цел, получено {}", t)),
                     (t, _) => Err(format!(
                         "Индексация применима только к массивам, получено {}",

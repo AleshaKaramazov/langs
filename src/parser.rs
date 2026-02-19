@@ -616,6 +616,26 @@ impl<'a> Parser<'a> {
             }
             Token::LParen => {
                 self.advance();
+                if matches!(
+                    self.current,
+                        Token::TypeNat
+                        | Token::TypeInt
+                        | Token::TypeFloat
+                        | Token::TypeBool
+                        | Token::TypeString
+                        | Token::TypeChar
+                        | Token::Array
+                ) {
+                    let target_type = self.parse_type();
+                    self.expect(Token::RParen);
+                    
+                    let expr = self.parse_primary(); 
+                    return Expr::Cast {
+                        target_type,
+                        expr: Box::new(expr),
+                    };
+                }
+
                 let expr = self.parse_expr();
                 self.expect(Token::RParen);
                 expr

@@ -135,6 +135,10 @@ pub enum Expr {
         op: UnaryOp,
         right: Box<Expr>,
     },
+    Cast {
+        target_type: Type,
+        expr: Box<Expr>,
+    },
     Call {
         name: String,
         args: Vec<Expr>,

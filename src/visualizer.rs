@@ -354,6 +354,18 @@ impl Visualizer {
 
     fn fmt_expr(&self, expr: &Expr) -> String {
         match expr {
+            Expr::Cast { target_type, expr } => {
+                let type_str = match target_type {
+                    Type::Int => "Цел",
+                    Type::UInt => "Нат",
+                    Type::Float => "Десятич",
+                    Type::Bool => "Лог",
+                    Type::String => "Строка",
+                    Type::Char => "Символ",
+                    _ => "?",
+                };
+                format!("({}) {}", type_str, self.fmt_expr(expr))
+            } 
             Expr::UInt(i) => i.to_string(),
             Expr::Int(i) => i.to_string(),
             Expr::Float(f) => format!("{:.2}", f),
