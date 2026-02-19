@@ -33,16 +33,16 @@ impl Interpreter {
         bind_native!(native, "НатСтепень", |base: i64, exp: i64| {
             if exp < 0 { 0 } else { base.pow(exp as u32) }
         });
-        bind_native!(native, "степень", |base: f64, exp: f64| {
+        bind_native!(native, "Степень", |base: f64, exp: f64| {
             if exp < 0.0 { 0.0 } else { base.powf(exp) }
         });
 
-        bind_native!(native, "факториал", |base: u64| {
+        bind_native!(native, "Факториал", |base: u64| {
             (2..=base).product::<u64>()
         });
 
         bind_native!(native, "ПИ", || { std::f64::consts::PI });
-        bind_native!(native, "корень2", |val: f64| { val.sqrt() });
+        bind_native!(native, "Корень2", |val: f64| { val.sqrt() });
     }
 
     pub fn run(&mut self, prog: &Program) -> RuntimeResult<()> {
@@ -644,7 +644,7 @@ impl Interpreter {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::Int(l / r))
+                Ok(Value::Float(l as f64 / r as f64))
             }
             (Value::Int(l), Value::Int(r), BinOp::Mod) => {
                 if r == 0 {
@@ -667,7 +667,7 @@ impl Interpreter {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::UInt(l / r))
+                Ok(Value::Float(l as f64 / r as f64))
             }
             (Value::UInt(l), Value::UInt(r), BinOp::Mod) => {
                 if r == 0 {
@@ -691,7 +691,7 @@ impl Interpreter {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::UInt(l / r as u64))
+                Ok(Value::Float(l as f64/ r as f64))
             }
             (Value::UInt(l), Value::Int(r), BinOp::Mod) => {
                 if r == 0 {
@@ -717,7 +717,7 @@ impl Interpreter {
                 if r == 0.0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::Float(l as f64 / r))
+                Ok(Value::Float(r / l as f64))
             }
             (Value::UInt(l), Value::Float(r), BinOp::Mod) => {
                 if r == 0.0 {
