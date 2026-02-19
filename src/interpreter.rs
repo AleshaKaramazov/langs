@@ -214,34 +214,42 @@ impl Interpreter {
             } => {
                 let start_val = self.eval_expr(start)?;
                 let end_val = self.eval_expr(end)?;
-
+                let low;
+                let mut high;
                 match (start_val, end_val) {
-                    (Value::Int(s), Value::Int(mut e)) => {
-                        self.env.enter_scope();
-                        self.env.declare(var.clone(), Value::Int(s));
-                        if !cont {
-                            e -= 1
-                        }
-                        for i in s..=e {
-                            self.env.assign(var, Value::Int(i));
-                            if let Some(ret) = self.exec_block(body)? {
-                                if ret == Value::BreakFlag {
-                                    break;
-                                } else if ret == Value::ContinueFlag {
-                                    continue;
-                                }
-                                self.env.exit_scope();
-                                return Ok(Some(ret));
-                            }
-                        }
-                        self.env.exit_scope();
-                        Ok(None)
+                    (Value::Int(s), Value::Int(e)) => {
+                        low = s;
+                        high = e;
                     }
-                    (t1, t2) => Err(format!(
+                    (Value::UInt(s), Value::UInt(e)) => {
+                        low = s as i64;
+                        high = e as i64;
+                    }
+                    (t1, t2) => return Err(format!(
                         "Границы цикла 'для' должны быть Цел, получено {} и {}",
                         t1, t2
                     )),
                 }
+
+                self.env.enter_scope();
+                self.env.declare(var.clone(), Value::Int(low));
+                if !cont {
+                    high -= 1
+                }
+                for i in low..=high {
+                    self.env.assign(var, Value::Int(i));
+                    if let Some(ret) = self.exec_block(body)? {
+                        if ret == Value::BreakFlag {
+                            break;
+                        } else if ret == Value::ContinueFlag {
+                            continue;
+                        }
+                        self.env.exit_scope();
+                        return Ok(Some(ret));
+                    }
+                }
+                self.env.exit_scope();
+                Ok(None)
             }
             Stmt::Expr(expr) => {
                 self.eval_expr(expr)?;

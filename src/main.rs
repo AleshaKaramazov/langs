@@ -63,8 +63,22 @@ fn main() {
                 eprintln!("ОШИБКА: Не удалось записать DOT файл: {}", e);
                 process::exit(1);
             }
-            println!("Граф сохранен в graph.dot.");
-            println!("что бы создать картинку: dot -Tpng graph.dot -o graph.png")
+            use std::process::Command;
+            let status = Command::new("dot")
+                .arg("-Tpng")
+                .arg("graph.dot")
+                .arg("-o")
+                .arg("алгоритм.png")
+                .status() 
+                .expect("Не удалось запустить dot. Проверьте, установлен ли Graphviz.");
+            if status.success() {
+                println!("Картинка успешно создана!");
+                if let Err(e) = fs::remove_file("graph.dot") {
+                    println!("не удалить убрать graph.dot: {}", e);
+                }
+            } else {
+                eprintln!("Команда завершилась с ошибкой: {}", status);
+            }            
         } else {
             eprintln!("ОШИБКА: Нечего рисовать, алгоритм 'Главная' не найден.");
         }

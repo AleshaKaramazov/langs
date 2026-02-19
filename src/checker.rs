@@ -252,7 +252,7 @@ impl TypeChecker {
             } => {
                 let start_ty = self.check_expr(start)?;
                 let end_ty = self.check_expr(end)?;
-                if start_ty != Type::Int || end_ty != Type::Int {
+                if !start_ty.is_numeric() || !end_ty.is_numeric() {
                     return Err("Границы цикла 'для' должны быть Числами (Int)".into());
                 }
 
