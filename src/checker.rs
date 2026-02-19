@@ -280,8 +280,8 @@ impl TypeChecker {
                 }
 
                 let ty = self.check_expr(target)?;
-                if ty != Type::Int && ty != Type::UInt {
-                    return Err(format!("Инкремент/Декремент работает только с Числами (Int | UInt), получено {:?}", ty));
+                if !ty.is_numeric() {
+                    return Err(format!("Инкремент/Декремент работает только с Числами (Int | UInt | Float), получено {:?}", ty));
                 }
                 Ok(Type::Int)
             }

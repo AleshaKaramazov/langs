@@ -233,7 +233,7 @@ impl Interpreter {
                         high = e as i64;
                     }
                     (t1, t2) => return Err(format!(
-                        "Границы цикла 'для' должны быть Цел, получено {} и {}",
+                        "Границы цикла 'для' должны быть Цел, получено {:?} и {:?}",
                         t1, t2
                     )),
                 }
@@ -310,7 +310,16 @@ impl Interpreter {
         } else {
             Ok(current_val)
         }
-    } else {
+    } else if let Value::Float(f) = current_val {
+        let new_val = Value::Float(f + delta as f64);
+        self.env.assign(name, new_val.clone());
+        if is_prefix {
+            Ok(new_val)
+        } else {
+            Ok(current_val)
+        }
+    } 
+    else {
         Err(format!("Операция применима только к целым числам, получено {}", current_val))
     }
 }

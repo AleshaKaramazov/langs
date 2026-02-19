@@ -48,14 +48,17 @@ impl Value {
         match self {
             Value::Int(v) => Ok(*v),
             Value::UInt(sd) => Ok(*sd as i64),
-            _ => Err(format!("Ожидалось Цел, получено {}", self)),
+            Value::Float(f) => Ok(*f as i64),
+            _ => Err(format!("Ожидалось Цел, получено {:?}", self)),
         }
     }
 
     pub fn expect_usize(&self) -> Result<u64, String> {
         match self {
             Value::UInt(sd) => Ok(*sd),
-            _ => Err(format!("Ожидалось Нат, получено {}", self)),
+            Value::Int(sd) => Ok(*sd as u64),
+            Value::Float(f) => Ok(*f as u64),
+            _ => Err(format!("Ожидалось Нат, получено {:?}", self)),
         }
     }
 
@@ -63,21 +66,21 @@ impl Value {
         match self {
             Value::Float(v) => Ok(*v),
             Value::Int(v) => Ok(*v as f64),
-            _ => Err(format!("Ожидалось Десятич, получено {}", self)),
+            _ => Err(format!("Ожидалось Десятич, получено {:?}", self)),
         }
     }
 
     pub fn expect_bool(&self) -> Result<bool, String> {
         match self {
             Value::Bool(v) => Ok(*v),
-            _ => Err(format!("Ожидалось Лог, получено {}", self)),
+            _ => Err(format!("Ожидалось Лог, получено {:?}", self)),
         }
     }
 
     pub fn expect_string(&self) -> Result<Rc<RefCell<String>>, String> {
         match self {
             Value::String(v) => Ok(v.clone()),
-            _ => Err(format!("Ожидалась Строка, получено {}", self)),
+            _ => Err(format!("Ожидалась Строка, получено {:?}", self)),
         }
     }
 }
