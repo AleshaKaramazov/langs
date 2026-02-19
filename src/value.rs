@@ -91,6 +91,13 @@ impl IntoValue for i64 {
         Value::Int(self)
     }
 }
+
+impl IntoValue for u64 {
+    fn into_value(self) -> Value {
+        Value::UInt(self)
+    }
+}
+
 impl IntoValue for f64 {
     fn into_value(self) -> Value {
         Value::Float(self)
