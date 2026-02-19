@@ -636,6 +636,7 @@ impl Interpreter {
             //the uint type is left with float
             std::mem::swap(&mut left, &mut right);
         }
+        //println!("{:?} -- {:?} -- {:?}", left, right, op);
         match (left, right, op) {
             (Value::Int(l), Value::Int(r), BinOp::Plus) => Ok(Value::Int(l + r)),
             (Value::Int(l), Value::Int(r), BinOp::Sub) => Ok(Value::Int(l - r)),
@@ -644,7 +645,7 @@ impl Interpreter {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::Float(l as f64 / r as f64))
+                Ok(Value::Int(l / r))
             }
             (Value::Int(l), Value::Int(r), BinOp::Mod) => {
                 if r == 0 {
@@ -667,7 +668,7 @@ impl Interpreter {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::Float(l as f64 / r as f64))
+                Ok(Value::UInt(l / r ))
             }
             (Value::UInt(l), Value::UInt(r), BinOp::Mod) => {
                 if r == 0 {
@@ -691,7 +692,7 @@ impl Interpreter {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::Float(l as f64/ r as f64))
+                Ok(Value::Int(l as i64 / r))
             }
             (Value::UInt(l), Value::Int(r), BinOp::Mod) => {
                 if r == 0 {
@@ -701,8 +702,8 @@ impl Interpreter {
             }
 
 
-            (Value::UInt(l), Value::Int(r), BinOp::Greater) => Ok(Value::Bool(l as i64 > r)),
-            (Value::UInt(l), Value::Int(r), BinOp::Less) => Ok(Value::Bool(l < r as u64 )),
+            (Value::UInt(l), Value::Int(r), BinOp::Greater) => Ok(Value::Bool((l as i64) < r)),
+            (Value::UInt(l), Value::Int(r), BinOp::Less) => Ok(Value::Bool(l > r as u64 )),
             (Value::UInt(l), Value::Int(r), BinOp::Equal) => Ok(Value::Bool(l as i64 == r)),
             (Value::UInt(l), Value::Int(r), BinOp::NotEqual) => Ok(Value::Bool(l as i64 != r)),
             (Value::UInt(l), Value::Int(r), BinOp::GreaterOrEqual) => Ok(Value::Bool(l as i64 >= r)),
