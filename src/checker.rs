@@ -322,6 +322,7 @@ impl TypeChecker {
                             Ok(Type::Int)
                         } else if l_ty == Type::Float && r_ty.is_numeric() 
                             || r_ty == Type::Float && l_ty.is_numeric()
+                            || r_ty == Type::Unknown && l_ty == Type::Unknown
                         {
                             Ok(Type::Float)
                         } else if l_ty == Type::UInt && r_ty.is_numeric() 

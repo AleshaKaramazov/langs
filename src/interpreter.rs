@@ -38,7 +38,7 @@ impl Interpreter {
         });
 
         bind_native!(native, "факториал", |base: u64| {
-            (2..=base).fold(1, |acc, i| acc * i)
+            (2..=base).product::<u64>()
         });
 
         bind_native!(native, "ПИ", || { std::f64::consts::PI });
@@ -303,7 +303,7 @@ impl Interpreter {
             Ok(current_val) // x++
         }
     } else if let Value::UInt(ui) = current_val {
-        let new_val = Value::UInt((ui as i64 + delta as i64) as u64);
+        let new_val = Value::UInt((ui as i64 + delta) as u64);
         self.env.assign(name, new_val.clone());
         if is_prefix {
             Ok(new_val)
