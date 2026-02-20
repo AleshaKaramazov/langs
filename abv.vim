@@ -12,7 +12,7 @@ syntax keyword abvRepeat пока для выполнить от до для_ в
 syntax keyword abvBoolean Истина Правда Ложь
 
 syntax keyword abvType Нат нат Цел цел Десятич дробь Лог Символ Строка массив
-syntax keyword abvType Алгоритм аргументы начало конец вернуть пусть
+syntax keyword abvType Алгоритм аргументы начало конец вернуть Вернуть пусть
 
 syntax match abvNumber "\<[0-9]\+\>"
 syntax match abvFloat "\<[0-9]\+\.[0-9]\+\>"
