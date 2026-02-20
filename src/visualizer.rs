@@ -30,7 +30,7 @@ impl Visualizer {
         format!("node_{}", self.node_count)
     }
 
-    pub fn translate(mut self, alg: Algorithm) -> String {
+    pub fn translate(mut self, alg: &Algorithm) -> String {
         let start_id = self.next_id();
         let args_str: Vec<String> = alg.args.iter().map(|(n, _)| n.clone()).collect();
         let start_label = if args_str.is_empty() {

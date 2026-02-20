@@ -369,7 +369,7 @@ impl<'a> Lexer<'a> {
         }
 
         match ident.as_str() {
-            "Алгоритм" => Token::Algorithm,
+            "Алгоритм" | "алгоритм" => Token::Algorithm,
             "аргументы" => Token::Arguments,
             "Начало" => Token::BeginFunc,
             "Конец" => Token::EndFunc,

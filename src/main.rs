@@ -19,6 +19,12 @@ use lexer::Lexer;
 use parser::Parser;
 use visualizer::Visualizer;
 
+struct Mode {
+    check: bool,
+    export: bool,
+    draw: bool
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
@@ -26,9 +32,32 @@ fn main() {
         process::exit(1);
     }
 
-    let filename = &args[1];
+    let mut filename = None;
+    let mut mode: Mode = Mode {check: true, export: false, draw: false };
+    for i in args.iter().skip(1) {
+        if i.starts_with('-') {
+            match i.as_str() {
+                "--export" | "--экспорт" | "--Экспорт" | "--Экспортировать" => mode.export = true,
+                "--draw" | "--нарисовать" | "--Нарисовать" => mode.draw = true,
+                "--non-check" | "--без-проверки" | "--БезПроверки" => mode.check = false,
+                _ => {
+                    eprintln!("ОШИБКА: Неизвестный флаг: {}", i);
+                    process::exit(1)
+                }
+            } 
+        } else {
+            filename = Some(i);
+        }
+    }
+    let filename: &str = match filename {
+        None => {
+            eprintln!("ОШИБКА: не передано имя файла");
+            process::exit(1);
+        }
+        Some(i) => i
+    };
 
-    let source = match fs::read_to_string(filename) {
+    let mut source = match fs::read_to_string(filename) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("ОШИБКА: Не удалось прочитать файл '{}': {}", filename, e);
@@ -36,27 +65,33 @@ fn main() {
         }
     };
 
-    if args.len() > 2 && args[2] == "--export" {
+    if mode.export {
         match process_export(&source, filename) {
             Ok(count) => println!("ГОТОВО! Экспортировано функций: {}", count),
             Err(e) => eprintln!("Ошибка: {}", e),
         }
-        return;
+        source = match fs::read_to_string(filename) {
+            Ok(s) => s,
+            Err(_) => {
+                eprintln!("ОШИБКА: Не удалось прочитать файл ПОСЛЕ экспорта функций");
+                process::exit(1);
+            }
+        };
     }
 
     let lexer = Lexer::new(&source);
     let mut parser = Parser::new(lexer);
 
     let program = parser.parse_program();
-
+    
     let main_algorithm = program
         .algorithms
         .iter()
-        .find(|alg| alg.name == "Главная")
+        .find(|alg| alg.name == "Глав" || alg.name == "Главная")
         .cloned();
 
-    if args.len() > 2 && args[2] == "--draw" {
-        if let Some(alg) = main_algorithm {
+    if mode.draw {
+        if let Some(alg) = &main_algorithm {
             let viz = Visualizer::new();
             let dot_output = viz.translate(alg);
             if let Err(e) = fs::write("graph.dot", dot_output) {
@@ -82,18 +117,19 @@ fn main() {
         } else {
             eprintln!("ОШИБКА: Нечего рисовать, алгоритм 'Главная' не найден.");
         }
-        return;
     }
 
-    if main_algorithm.is_none() {
-        eprintln!("ОШИБКА: В программе должен быть основной алгоритм с именем 'Главная'.");
-        process::exit(1);
-    }
+    if mode.check {
+        if main_algorithm.is_none() {
+            eprintln!("ОШИБКА: В программе должен быть основной алгоритм с именем 'Главная'.");
+            process::exit(1);
+        }
 
-    let mut checker = TypeChecker::new();
-    if let Err(e) = checker.check_program(&program) {
-        eprintln!("ОШИБКА ТИПИЗАЦИИ: {}", e);
-        process::exit(1);
+        let mut checker = TypeChecker::new();
+        if let Err(e) = checker.check_program(&program) {
+            eprintln!("ОШИБКА ТИПИЗАЦИИ: {}", e);
+            process::exit(1);
+        }
     }
 
     let mut interpreter = Interpreter::new();
@@ -115,7 +151,7 @@ fn process_export(source: &str, filename: &str) -> Result<usize, Box<dyn std::er
     let mut export_count = 0;
 
     for (line_num, line) in source.lines().enumerate() {
-        if line.starts_with("экспорт") {
+        if line.starts_with("экспорт") || line.starts_with("Экспорт") {
             let func_name = if let Some(name) = line.split_whitespace().nth(1) {
                 name
             } else {
