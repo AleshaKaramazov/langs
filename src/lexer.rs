@@ -389,7 +389,7 @@ impl<'a> Lexer<'a> {
 
             "выполнить" => Token::Do,
 
-            "вернуть" => Token::Return,
+            "вернуть" | "Вернуть" => Token::Return,
 
             "Нат" | "нат" => Token::TypeNat,
             "Цел" | "цел" => Token::TypeInt,

@@ -51,7 +51,7 @@ impl TypeEnv {
 
     pub fn check_assign(&self, name: &str, new_ty: &Type) -> Result<(), String> {
         let current_ty = self.lookup(name)?;
-        if &current_ty != new_ty {
+        if *new_ty != Type::Unknown && &current_ty != new_ty {
             return Err(format!(
                 "Несоответствие типов для '{}': ожидалось {:?}, получено {:?}",
                 name, current_ty, new_ty

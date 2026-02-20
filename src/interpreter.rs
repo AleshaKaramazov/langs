@@ -42,6 +42,7 @@ impl Interpreter {
         });
 
         bind_native!(native, "ПИ", || { std::f64::consts::PI });
+        bind_native!(native, "ПИ2", || { 2.0 * std::f64::consts::PI });
         bind_native!(native, "Корень2", |val: f64| { val.sqrt() });
     }
 
@@ -814,13 +815,13 @@ impl Interpreter {
 
             //variations of float and int operations
             (Value::Float(l), Value::Int(r), BinOp::Plus) => Ok(Value::Float(l + r as f64)),
-            (Value::Float(l), Value::Int(r), BinOp::Sub) => Ok(Value::Float(l - r as f64)),
+            (Value::Float(l), Value::Int(r), BinOp::Sub) => Ok(Value::Float(r as f64 - l)),
             (Value::Float(l), Value::Int(r), BinOp::Mult) => Ok(Value::Float(l * r as f64)),
             (Value::Float(l), Value::Int(r), BinOp::Div) => {
                 if r == 0 {
                     return Err("Деление на ноль!".to_string());
                 }
-                Ok(Value::Float(l / r as f64))
+                Ok(Value::Float((r as f64) / l))
             }
             (Value::Float(l), Value::Int(r), BinOp::Mod) => {
                 if r == 0 {
