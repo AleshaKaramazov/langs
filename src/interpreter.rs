@@ -46,10 +46,10 @@ impl Interpreter {
         bind_native!(native, "Корень2", |val: f64| { val.sqrt() });
     }
 
-    pub fn run(&mut self, prog: &Program) -> RuntimeResult<()> {
-        for alg in &prog.algorithms {
+    pub fn run(&mut self, prog: Program) -> RuntimeResult<()> {
+        for alg in prog.algorithms {
             self.functions
-                .insert(alg.name.clone(), Rc::new(alg.clone()));
+                .insert(alg.name.clone(), Rc::new(alg));
         }
 
         let main_alg = match self

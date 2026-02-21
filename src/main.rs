@@ -133,7 +133,7 @@ fn main() {
     }
 
     let mut interpreter = Interpreter::new();
-    match interpreter.run(&program) {
+    match interpreter.run(program) {
         Ok(_) => {
             //println!("ПРОГРАММА ЗАВЕРШИЛАСЬ УСПЕШНО!");
         }
