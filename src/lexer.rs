@@ -43,6 +43,7 @@ pub enum Token {
     String(String),
     Ident(String),
 
+    Lambda,
     Assign,
     Define,
     MinusAssign,
@@ -392,6 +393,7 @@ impl<'a> Lexer<'a> {
             "вернуть" | "Вернуть" => Token::Return,
 
             "Нат" | "нат" => Token::TypeNat,
+            "Лямбда" | "лямбда" => Token::Lambda,
             "Цел" | "цел" => Token::TypeInt,
             "Десятич" | "дробь" => Token::TypeFloat,
             "Лог" => Token::TypeBool,

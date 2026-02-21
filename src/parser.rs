@@ -370,6 +370,15 @@ impl<'a> Parser<'a> {
 
     fn parse_type(&mut self) -> Type {
         let t = match self.current {
+            Token::Lambda => { 
+                self.advance();
+                self.expect(Token::Less);
+                let arg_type = self.parse_type();
+                self.expect(Token::Greater);
+                self.expect(Token::Arrow);
+                let ret_type = self.parse_type();
+                return Type::Function(Box::new(arg_type), Box::new(ret_type));
+            }
             Token::TypeNat => Type::UInt,
             Token::TypeInt => Type::Int,
             Token::TypeFloat => Type::Float,
@@ -508,12 +517,20 @@ impl<'a> Parser<'a> {
             Token::Pipe => {
                 self.advance();
 
-                let param_name = self.consume_ident();
-                self.advance();
+                let param_name = self.consume_ident(); 
 
-                let param_ty = self.parse_type();
+                let param_ty = if self.current == Token::Colon {
+                    self.advance();
+                    self.parse_type()
+                } else {
+                    Type::Unknown
+                };
 
                 self.expect(Token::Pipe);
+
+                if self.current == Token::Assign || self.current == Token::Equal {
+                    self.advance();
+                }
 
                 let body = self.parse_expr();
 

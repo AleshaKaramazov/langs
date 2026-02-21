@@ -664,10 +664,27 @@ impl Interpreter {
                     return self.call_intrinsic(name, evaluated_args);
                 }
 
+                if let Some(Value::Closure { param, body, env }) = self.env.try_get(name) {
+                    if evaluated_args.len() != 1 {
+                        return Err(format!("Лямбда '{}' ожидает 1 аргумент", name));
+                    }
+                    
+                    let old_scopes = self.env.replace_scopes(env.clone());
+                    self.env.enter_scope();
+                    self.env.declare(param.clone(), evaluated_args[0].clone());
+
+                    let res = self.eval_expr(&body)?;
+
+                    self.env.exit_scope();
+                    self.env.replace_scopes(Rc::new(old_scopes));
+
+                    return Ok(res);
+                }
+
                 let func_alg = self
                     .functions
                     .get(name)
-                    .ok_or(format!("Функция {} не найдена", name))?
+                    .ok_or(format!("Функция или лямбда '{}' не найдена", name))?
                     .clone();
 
                 self.exec_function(&func_alg, evaluated_args)

@@ -51,7 +51,7 @@ impl TypeEnv {
 
     pub fn check_assign(&self, name: &str, new_ty: &Type) -> Result<(), String> {
         let current_ty = self.lookup(name)?;
-        if *new_ty != Type::Unknown && &current_ty != new_ty {
+        if !current_ty.is_compatible(new_ty) {
             return Err(format!(
                 "Несоответствие типов для '{}': ожидалось {:?}, получено {:?}",
                 name, current_ty, new_ty
@@ -148,13 +148,7 @@ impl TypeChecker {
                         let final_ty = if *ty == Type::Infer {
                             expr_ty.clone()
                         } else {
-                            if expr_ty != Type::Unknown
-                                && *ty != expr_ty
-                                && !((*ty).is_numeric() || expr_ty.is_numeric())
-                                && match ty {
-                                    Type::Array(inner) => **inner != expr_ty,
-                                    _ => true,
-                                }
+                            if !ty.is_compatible(&expr_ty)
                             {
                                 return Err(format!(
                                     "Ошибка в 'пусть {}': ожидался тип {:?}, получен {:?}",
@@ -295,19 +289,15 @@ impl TypeChecker {
                 Ok(ty)
             }
             Expr::NativeCall { .. } => Ok(Type::Unknown),
-            Expr::Lambda {
-                param,
-                param_ty,
-                body,
-            } => {
+            Expr::Lambda { param, param_ty, body } => {
                 self.env.enter_scope();
                 self.env.declare(param.clone(), param_ty.clone())?;
+                
                 let body_ty = self.check_expr(body)?;
+                
                 self.env.exit_scope();
-                Ok(Type::Function(
-                    Box::new(param_ty.clone()),
-                    Box::new(body_ty),
-                ))
+                
+                Ok(Type::Function(Box::new(param_ty.clone()), Box::new(body_ty)))
             }
             Expr::Int(_) => Ok(Type::Int),
             Expr::UInt(_) => Ok(Type::UInt),
@@ -499,10 +489,26 @@ impl TypeChecker {
                     }
                 }
 
+                if let Ok(Type::Function(arg_ty, ret_ty)) = self.env.lookup(name) {
+                    if args.len() != 1 {
+                        return Err(format!("Лямбда '{}' ожидает 1 аргумент, получено {}", name, args.len()));
+                    }
+                    let arg_expr = &args[0];
+                    let actual_arg_ty = self.check_expr(arg_expr)?;
+                    
+                    if !arg_ty.is_compatible(&actual_arg_ty) {
+                        return Err(format!(
+                            "Аргумент лямбды '{}' имеет неверный тип. Ожидалось {:?}, получено {:?}",
+                            name, arg_ty, actual_arg_ty
+                        ));
+                    }
+                    return Ok(*ret_ty.clone());
+                }
+
                 //println!("name == {}", name);
                 let sig = match self.functions.get(name) {
                     Some(s) => s.clone(),
-                    None => return Err(format!("Неизвестная функция: {}", name)),
+                    None => return Err(format!("Неизвестная функция или лямбда: {}", name)),
                 };
 
                 if args.len() != sig.args.len() {

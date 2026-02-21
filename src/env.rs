@@ -11,6 +11,14 @@ impl Env {
             scopes: vec![HashMap::new()],
         }
     }
+    pub fn try_get(&self, name: &str) -> Option<Value> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(v) = scope.get(name) {
+                return Some(v.clone());
+            }
+        }
+        None
+    }
 
     pub fn snapshot(&self) -> Rc<Vec<HashMap<String, Value>>> {
         Rc::new(self.scopes.clone())

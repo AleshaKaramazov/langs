@@ -19,6 +19,20 @@ impl Type {
     pub fn is_numeric(&self) -> bool {
         matches!(self, Type::Int | Type::UInt | Type::Float | Type::Unknown)
     }
+    pub fn is_compatible(&self, other: &Type) -> bool {
+        if (self == &Type::Unknown || other == &Type::Unknown) 
+            || (self.is_numeric() && other.is_numeric()){
+            return true;
+        } 
+        
+        match (self, other) {
+            (Type::Function(a1, r1), Type::Function(a2, r2)) => {
+                a1.is_compatible(a2) && r1.is_compatible(r2)
+            }
+            (Type::Array(t1), Type::Array(t2)) => t1.is_compatible(t2),
+            _ => self == other,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
