@@ -422,7 +422,32 @@ impl Interpreter {
                 method,
                 args,
             } => {
-                if method == "Где" {
+                if method == "Как" {
+                    let target_val = self.eval_expr(target)?;
+                    let closure_val = self.eval_expr(&args[0])?;
+
+                    if let (Value::Array(elements_rc), Value::Closure { param, body, env }) =
+                        (target_val, closure_val)
+                    {
+                        let mut res_arr = Vec::new();
+                        let elements = elements_rc.borrow();
+
+                        for item in elements.iter() {
+                            let old_scopes = self.env.replace_scopes(env.clone());
+                            self.env.enter_scope();
+                            self.env.declare(param.clone(), item.clone());
+
+                            let res = self.eval_expr(&body)?;
+
+                            self.env.exit_scope();
+                            self.env.replace_scopes(Rc::new(old_scopes));
+
+                            res_arr.push(res);
+                        }
+                        return Ok(Value::Array(Rc::new(RefCell::new(res_arr))));
+                    }
+                }
+                else if method == "Где" {
                     let target_val = self.eval_expr(target)?;
                     let closure_val = self.eval_expr(&args[0])?;
 

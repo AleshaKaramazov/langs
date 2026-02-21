@@ -425,6 +425,13 @@ impl TypeChecker {
                         }
                         Ok(Type::Bool)
                     }
+                    (Type::Array(_), "Как") => {
+                        if args.len() != 1 {
+                            return Err("Метод 'Как' требует 1 аргумент".into());
+                        }
+                        let arg_ty = self.check_expr(&args[0])?;
+                        Ok(Type::Array(Box::new(arg_ty)))
+                    }
                     (Type::Array(inner_ty), "Где") => {
                         if args.len() != 1 {
                             return Err("Метод 'Где' требует 1 аргумент".into());
@@ -432,7 +439,7 @@ impl TypeChecker {
                         let arg_ty = self.check_expr(&args[0])?;
 
                         if let Type::Function(arg, ret) = arg_ty {
-                            if *arg != *inner_ty {
+                            if !inner_ty.is_compatible(&arg) {
                                 return Err(format!(
                                     "Лямбда ожидает {:?}, а в массиве {:?}",
                                     arg, inner_ty
