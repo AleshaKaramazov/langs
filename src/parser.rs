@@ -26,6 +26,11 @@ impl<'a> Parser<'a> {
             panic!("Ожидался {:?}, но получен {:?}", token, self.current);
         }
     }
+    fn adv_if(&mut self, token: Token) {
+        if self.current == token {
+            self.advance();
+        } 
+    }
 
     pub fn parse_algorithm(&mut self) -> Algorithm {
         self.expect(Token::Algorithm);
@@ -112,18 +117,20 @@ impl<'a> Parser<'a> {
                     Stmt::Return(None)
                 } else {
                     let expr = self.parse_expr();
-                    self.expect(Token::Semicolon);
+                    if self.current == Token::Semicolon {
+                        self.advance(); 
+                    }
                     Stmt::Return(Some(expr))
                 }
             }
             Token::Break => {
                 self.advance();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::Break
             }
             Token::Continue => {
                 self.advance();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::Continue
             }
             Token::Let => self.parse_let(),
@@ -144,39 +151,39 @@ impl<'a> Parser<'a> {
                 let name = self.extract_var_name(expr);
                 self.advance();
                 let val = self.parse_expr();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::Assign { name, expr: val }
             }
             Token::PlusAssign => {
                 let name = self.extract_var_name(expr);
                 self.advance();
                 let val = self.parse_expr();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::AssignAdd { name, expr: val }
             }
             Token::MinusAssign => {
                 let name = self.extract_var_name(expr);
                 self.advance();
                 let val = self.parse_expr();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::AssignSub { name, expr: val }
             }
             Token::MultAssigment => {
                 let name = self.extract_var_name(expr);
                 self.advance();
                 let val = self.parse_expr();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::AssignMult { name, expr: val }
             }
             Token::DivAssign => {
                 let name = self.extract_var_name(expr);
                 self.advance();
                 let val = self.parse_expr();
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::AssignDiv { name, expr: val }
             }
             _ => {
-                self.expect(Token::Semicolon);
+                self.adv_if(Token::Semicolon);
                 Stmt::Expr(expr)
             }
         }
@@ -207,7 +214,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.expect(Token::Semicolon);
+        self.adv_if(Token::Semicolon);
 
         Stmt::Let { name, ty, expr }
     }
