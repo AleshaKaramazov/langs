@@ -393,12 +393,30 @@ impl Interpreter {
                 self.native.call(path, evaluated_args)
             }
             Expr::Var(name) => {
-                let val = self.env.get(name);
-                if val == Value::Uninitialized {
-                    return Err(format!("Переменная '{}' используется до инициализации!", name));
+                if let Some(val) = self.env.try_get(name) {
+                    if val == Value::Uninitialized {
+                        return Err(format!("Переменная '{}' используется до инициализации!", name));
+                    }
+                    Ok(val)
+                } else if let Some(alg) = self.functions.get(name).cloned() {
+                    if alg.args.len() == 1 {
+                        let param_name = alg.args[0].0.clone();
+                        Ok(Value::Closure {
+                            param: param_name.clone(),
+                            body: Rc::new(Expr::Call {
+                                name: name.to_string(),
+                                args: vec![Expr::Var(param_name)],
+                                intrinsic: false,
+                            }),
+                            env: Rc::new(vec![HashMap::new()]),
+                        })
+                    } else {
+                        Err(format!("Передача алгоритма '{}' невозможна: нужно ровно 1 аргумент.", name))
+                    }
+                } else {
+                    Err(format!("Переменная или алгоритм '{}' не найдены.", name))
                 }
-                Ok(val)
-            }
+            }, 
             Expr::MethodCall {
                 target,
                 method,

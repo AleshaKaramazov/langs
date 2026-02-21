@@ -396,7 +396,7 @@ impl<'a> Lexer<'a> {
             "Лямбда" | "лямбда" => Token::Lambda,
             "Цел" | "цел" => Token::TypeInt,
             "Десятич" | "дробь" => Token::TypeFloat,
-            "Лог" => Token::TypeBool,
+            "Лог" | "Логич" | "лог" | "логич" => Token::TypeBool,
             "Символ" => Token::TypeChar,
             "Строка" => Token::TypeString,
 

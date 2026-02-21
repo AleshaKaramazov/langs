@@ -305,7 +305,26 @@ impl TypeChecker {
             Expr::Char(_) => Ok(Type::Char),
             Expr::Float(_) => Ok(Type::Float),
             Expr::String(_) => Ok(Type::String),
-            Expr::Var(name) => self.env.lookup(name),
+            Expr::Var(name) => 
+                match self.env.lookup(name) {
+                    Ok(ty) => Ok(ty),
+                    Err(_) => { if let Some(sig) = self.functions.get(name) {
+                    if sig.args.len() == 1 {
+                        Ok(Type::Function(
+                            Box::new(sig.args[0].clone()), 
+                            Box::new(sig.ret_type.clone())
+                        ))
+                    } else {
+                        Err(format!(
+                            "Алгоритм '{}' имеет {} аргументов. Передача в качестве лямбды пока поддерживается только для 1 аргумента.", 
+                            name, sig.args.len()
+                        ))
+                    }
+            } else {
+                Err(format!("Переменная или алгоритм '{}' не найдены.", name))
+            }
+        }
+                }
             Expr::Binary { left, op, right } => {
                 let l_ty = self.check_expr(left)?;
                 let r_ty = self.check_expr(right)?;

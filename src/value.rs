@@ -37,7 +37,13 @@ impl fmt::Display for Value {
             Self::UInt(ui) => write!(f, "{}", ui),
             Self::Bool(b) => write!(f, "{}", b),
             Self::String(s) => write!(f, "{}", s.borrow()),
-            Self::Array(a) => write!(f, "{:?}", a.borrow()),
+            Self::Array(a) => {
+                write!(f, "[ ")?;
+                for i in a.borrow().iter() {
+                    write!(f, "{}, ", i)?;
+                }
+                write!(f, "]")
+            },
             _=> write!(f, "для этих типой не придусмотрен вывод на экран"),
         }
     }
